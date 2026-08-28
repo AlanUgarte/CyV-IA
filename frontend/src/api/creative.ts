@@ -13,6 +13,8 @@ export interface Strategy { chosenStyle: string; concept: string; angle: string;
 
 // el interceptor del backend envuelve en { success, data }, por eso .data.data
 const D = <T,>(p: Promise<{ data: { data: T } }>) => p.then(r => r.data.data);
+// clave de idempotencia por generación (evita doble cobro ante reintentos)
+const idem = () => ({ headers: { 'Idempotency-Key': (crypto as any).randomUUID?.() ?? String(Date.now() + Math.random()) } });
 
 export const creativeApi = {
   costs: () => D<{ costs: Record<string, number>; credits: number }>(api.get('/creative/costs')),
@@ -23,14 +25,14 @@ export const creativeApi = {
   strategy: (body: { product: ProductInfo; objective: string; style: string }) =>
     D<Strategy>(api.post('/creative/strategy', body, { timeout: 60_000 })),
 
-  images: (body: { product: ProductInfo; objective: string; style: string; format: Fmt }) =>
-    D<{ variants: ImageVariant[]; credits: number; creditsUsed: number }>(api.post('/creative/images', body, { timeout: 180_000 })),
+  images: (body: { product: ProductInfo; objective: string; style: string; format: Fmt; quality?: 'standard' | 'premium'; referenceImage?: string }) =>
+    D<{ variants: ImageVariant[]; credits: number; creditsUsed: number }>(api.post('/creative/images', body, { timeout: 180_000, ...idem() })),
 
-  image: (body: { product: ProductInfo; objective: string; style: string; format: Fmt; angleKey?: string }) =>
-    D<{ variant: ImageVariant; credits: number; creditsUsed: number }>(api.post('/creative/image', body, { timeout: 120_000 })),
+  image: (body: { product: ProductInfo; objective: string; style: string; format: Fmt; angleKey?: string; quality?: 'standard' | 'premium'; referenceImage?: string }) =>
+    D<{ variant: ImageVariant; credits: number; creditsUsed: number }>(api.post('/creative/image', body, { timeout: 120_000, ...idem() })),
 
   video: (body: { imageBase64: string; product: ProductInfo; style: string; duration: '5' | '10' }) =>
-    D<{ videoUrl: string; animationPrompt: string; credits: number; creditsUsed: number }>(api.post('/creative/video', body, { timeout: 180_000 })),
+    D<{ videoUrl: string; animationPrompt: string; credits: number; creditsUsed: number }>(api.post('/creative/video', body, { timeout: 180_000, ...idem() })),
 
   copy: (body: { product: ProductInfo; objective: string; style: string }) =>
     D<{ variants: CopyVariant[]; credits: number; creditsUsed: number }>(api.post('/creative/copy', body, { timeout: 60_000 })),

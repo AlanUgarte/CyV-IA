@@ -2,7 +2,10 @@ import { Controller, Get, Post, Delete, Body, Param, Request, UseGuards, HttpCod
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreativeService, ProductInfo } from './creative.service';
-import { AI_CREDIT_COSTS } from './creative.costs';
+import { CreditsService } from '../credits/credits.service';
+import { CostTrackingService } from '../credits/cost-tracking.service';
+import { CREDIT_COSTS, estimateProviderCost, CreditOperation } from '../config/credits.config';
+import { PROVIDERS } from '../config/providers.config';
 import { Fmt } from './openai.service';
 
 @ApiTags('creative')
@@ -10,105 +13,104 @@ import { Fmt } from './openai.service';
 @UseGuards(JwtAuthGuard)
 @Controller('creative')
 export class CreativeController {
-  constructor(private readonly svc: CreativeService) {}
+  constructor(
+    private readonly svc: CreativeService,
+    private readonly credits: CreditsService,
+    private readonly cost: CostTrackingService,
+  ) {}
 
-  // Config de costos + balance del usuario
+  // Wrapper reserva → genera → consume/release + cost tracking (créditos seguros)
+  private async billed<T>(req: any, opts: {
+    operation: CreditOperation; amount: number; provider: string; model: string; seconds?: number;
+  }, fn: () => Promise<T>): Promise<{ result: T; credits: number; creditsUsed: number }> {
+    const idem = req.headers['idempotency-key'] as string | undefined;
+    const { txId } = await this.credits.reserve({
+      userId: req.user.id, role: req.user.role, amount: opts.amount,
+      operation: opts.operation, provider: opts.provider, model: opts.model, idempotencyKey: idem,
+    });
+    try {
+      const result = await fn();
+      await this.credits.consume(txId);
+      await this.cost.log({
+        userId: req.user.id, provider: opts.provider, model: opts.model, operation: opts.operation,
+        durationSecs: opts.seconds, resolution: opts.seconds ? '1080p' : undefined,
+        estimatedProviderCostUsd: estimateProviderCost(opts.operation, opts.seconds),
+        creditsReserved: opts.amount, creditsConsumed: opts.amount, status: 'completed',
+      });
+      return { result, credits: await this.credits.balance(req.user.id), creditsUsed: req.user.role === 'admin' ? 0 : opts.amount };
+    } catch (e: any) {
+      await this.credits.release(txId, 'gen_error');
+      await this.cost.log({ userId: req.user.id, provider: opts.provider, model: opts.model, operation: opts.operation, status: 'failed', error: e?.message?.slice(0, 200) });
+      throw e;
+    }
+  }
+
   @Get('costs')
-  async costs(@Request() req: any) {
-    return { costs: AI_CREDIT_COSTS, credits: await this.svc.getCredits(req.user.id) };
-  }
+  async costs(@Request() req: any) { return { costs: CREDIT_COSTS, credits: await this.credits.balance(req.user.id) }; }
 
-  @Get('credits')
-  async credits(@Request() req: any) {
-    return { credits: await this.svc.getCredits(req.user.id) };
-  }
-
-  // PASO 1
-  @Post('analyze')
-  @HttpCode(HttpStatus.OK)
+  // PASO 1 (gratis)
+  @Post('analyze') @HttpCode(HttpStatus.OK)
   async analyze(@Body() body: { name?: string; description?: string; imageBase64?: string }) {
-    return await this.svc.analyzeProduct(body);
+    return this.svc.analyzeProduct(body);
   }
 
-  // PASO 2+3
-  @Post('strategy')
-  @HttpCode(HttpStatus.OK)
+  // PASO 2+3 (gratis)
+  @Post('strategy') @HttpCode(HttpStatus.OK)
   async strategy(@Body() body: { product: ProductInfo; objective: string; style: string }) {
-    return await this.svc.buildStrategy(body);
+    return this.svc.buildStrategy(body);
   }
 
   // PASO 4 — 3 variantes
-  @Post('images')
-  @HttpCode(HttpStatus.OK)
-  async images(@Body() body: { product: ProductInfo; objective: string; style: string; format: Fmt }, @Request() req: any) {
-    await this.assertCredits(req, AI_CREDIT_COSTS.imageVariantsSet);
-    const variants = await this.svc.generateImageVariants(body);
-    const credits = await this.svc.charge(req.user.id, req.user.role, AI_CREDIT_COSTS.imageVariantsSet);
-    return { variants, credits, creditsUsed: AI_CREDIT_COSTS.imageVariantsSet };
+  @Post('images') @HttpCode(HttpStatus.OK)
+  async images(@Body() body: { product: ProductInfo; objective: string; style: string; format: Fmt; quality?: 'standard' | 'premium'; referenceImage?: string }, @Request() req: any) {
+    const op: CreditOperation = body.quality === 'premium' ? 'image_premium' : 'image_standard';
+    const amount = CREDIT_COSTS[op] * 3;
+    const { result, credits, creditsUsed } = await this.billed(req, { operation: op, amount, provider: PROVIDERS.image, model: PROVIDERS.openaiImageModel },
+      () => this.svc.generateImageVariants(body));
+    return { variants: result, credits, creditsUsed };
   }
 
   // Regenerar una variante
-  @Post('image')
-  @HttpCode(HttpStatus.OK)
-  async image(@Body() body: { product: ProductInfo; objective: string; style: string; format: Fmt; angleKey?: string }, @Request() req: any) {
-    await this.assertCredits(req, AI_CREDIT_COSTS.imageRegen);
-    const variant = await this.svc.generateSingleImage(body);
-    const credits = await this.svc.charge(req.user.id, req.user.role, AI_CREDIT_COSTS.imageRegen);
-    return { variant, credits, creditsUsed: AI_CREDIT_COSTS.imageRegen };
+  @Post('image') @HttpCode(HttpStatus.OK)
+  async image(@Body() body: { product: ProductInfo; objective: string; style: string; format: Fmt; angleKey?: string; quality?: 'standard' | 'premium'; referenceImage?: string }, @Request() req: any) {
+    const op: CreditOperation = body.quality === 'premium' ? 'image_premium' : 'image_standard';
+    const { result, credits, creditsUsed } = await this.billed(req, { operation: op, amount: CREDIT_COSTS[op], provider: PROVIDERS.image, model: PROVIDERS.openaiImageModel },
+      () => this.svc.generateSingleImage(body));
+    return { variant: result, credits, creditsUsed };
   }
 
-  // PASO 5 — video (async, con polling interno)
-  @Post('video')
-  @HttpCode(HttpStatus.OK)
+  // PASO 5 — video
+  @Post('video') @HttpCode(HttpStatus.OK)
   async video(@Body() body: { imageBase64: string; product: ProductInfo; style: string; duration: '5' | '10' }, @Request() req: any) {
-    const cost = body.duration === '10' ? AI_CREDIT_COSTS.video10 : AI_CREDIT_COSTS.video5;
-    await this.assertCredits(req, cost);
-    const result = await this.svc.generateVideo(body);
-    const credits = await this.svc.charge(req.user.id, req.user.role, cost);
-    return { ...result, credits, creditsUsed: cost };
+    const seconds = body.duration === '10' ? 10 : 5;
+    const op: CreditOperation = seconds === 10 ? 'video_10' : 'video_5';
+    const { result, credits, creditsUsed } = await this.billed(req, { operation: op, amount: CREDIT_COSTS[op], provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds },
+      () => this.svc.generateVideo(body));
+    return { ...(result as any), credits, creditsUsed };
   }
 
-  // PASO 6 — copy
-  @Post('copy')
-  @HttpCode(HttpStatus.OK)
-  async copy(@Body() body: { product: ProductInfo; objective: string; style: string }, @Request() req: any) {
-    await this.assertCredits(req, AI_CREDIT_COSTS.copy);
-    const variants = await this.svc.generateCopy(body);
-    const credits = await this.svc.charge(req.user.id, req.user.role, AI_CREDIT_COSTS.copy);
-    return { variants, credits, creditsUsed: AI_CREDIT_COSTS.copy };
+  // PASO 6 — copy (gratis)
+  @Post('copy') @HttpCode(HttpStatus.OK)
+  async copy(@Body() body: { product: ProductInfo; objective: string; style: string }) {
+    return { variants: await this.svc.generateCopy(body) };
   }
 
   // HISTORIAL
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  async save(@Body() body: any, @Request() req: any) {
-    return await this.svc.saveCreative(req.user.id, body);
-  }
+  @Post() @HttpCode(HttpStatus.CREATED)
+  async save(@Body() body: any, @Request() req: any) { return this.svc.saveCreative(req.user.id, body); }
 
   @Get()
-  async list(@Request() req: any) {
-    return await this.svc.listCreatives(req.user.id);
-  }
+  async list(@Request() req: any) { return this.svc.listCreatives(req.user.id); }
 
   @Get('stats')
-  async stats(@Request() req: any) {
-    return await this.svc.stats(req.user.id);
-  }
+  async stats(@Request() req: any) { return this.svc.stats(req.user.id); }
 
   @Get(':id')
   async getOne(@Param('id') id: string, @Request() req: any) {
-    return await this.svc.getCreative(id, req.user.id);
+    if (!id) throw new BadRequestException('id requerido');
+    return this.svc.getCreative(id, req.user.id);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string, @Request() req: any) {
-    return await this.svc.removeCreative(id, req.user.id);
-  }
-
-  // Chequea balance ANTES de generar (así un fallo no cobra créditos)
-  private async assertCredits(req: any, cost: number) {
-    if (req.user.role === 'admin' || cost <= 0) return;
-    const bal = await this.svc.getCredits(req.user.id);
-    if (bal < cost) throw new BadRequestException('SIN_CREDITOS');
-  }
+  async remove(@Param('id') id: string, @Request() req: any) { return this.svc.removeCreative(id, req.user.id); }
 }

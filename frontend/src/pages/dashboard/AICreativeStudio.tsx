@@ -129,12 +129,12 @@ export default function AICreativeStudio() {
   });
 
   const genImages = () => run('images', async () => {
-    const r = await creativeApi.images({ product: s.product, objective: s.objective, style: s.strategy?.chosenStyle || s.style, format: s.format });
+    const r = await creativeApi.images({ product: s.product, objective: s.objective, style: s.strategy?.chosenStyle || s.style, format: s.format, referenceImage: s.imageBase64 });
     patch({ variants: r.variants }); setCredits(r.credits);
   });
 
   const regenImage = (angleKey: string) => run('image', async () => {
-    const r = await creativeApi.image({ product: s.product, objective: s.objective, style: s.strategy?.chosenStyle || s.style, format: s.format, angleKey });
+    const r = await creativeApi.image({ product: s.product, objective: s.objective, style: s.strategy?.chosenStyle || s.style, format: s.format, angleKey, referenceImage: s.imageBase64 });
     setCredits(r.credits);
     patch({ variants: s.variants.map(v => v.key === angleKey ? r.variant : v) });
   });

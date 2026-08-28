@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { DATABASE_POOL } from '../database/database.module';
 import { StorageService } from '../uploads/storage.service';
 import { OpenaiService, Fmt } from './openai.service';
-import { MagnificService } from './magnific.service';
+import { IMAGE_PROVIDER, VIDEO_PROVIDER, ImageProvider, VideoProvider } from './providers/types';
 
 // ── Catálogos (concepto → guía para GPT) ─────────────────────────────────────
 export const OBJECTIVES: Record<string, string> = {
@@ -49,8 +49,9 @@ export class CreativeService {
 
   constructor(
     @Inject(DATABASE_POOL) private readonly db: Pool,
-    private readonly openai: OpenaiService,
-    private readonly magnific: MagnificService,
+    private readonly openai: OpenaiService,              // "cerebro" de texto/visión
+    @Inject(IMAGE_PROVIDER) private readonly imageProvider: ImageProvider,
+    @Inject(VIDEO_PROVIDER) private readonly videoProvider: VideoProvider,
     private readonly storage: StorageService,
   ) {}
 
@@ -92,7 +93,8 @@ Devolvé JSON: { "chosenStyle": string (una de las claves de estilo), "concept":
   // ── PASO 4: 3 variantes de imagen (GPT arma cada prompt visual → gpt-image) ──
   async generateImageVariants(input: {
     product: ProductInfo; objective: string; style: string; format: Fmt;
-  }): Promise<Array<{ key: string; label: string; description: string; prompt: string; url: string }>> {
+    quality?: 'standard' | 'premium'; referenceImage?: string;
+  }): Promise<Array<{ key: string; label: string; description: string; prompt: string; url: string; model: string }>> {
     const styleDesc = STYLES[input.style] ?? STYLES.profesional;
     const objGuide = OBJECTIVES[input.objective] ?? OBJECTIVES.vender;
 
@@ -105,19 +107,19 @@ JSON: [ { "key": "oferta", "prompt": "..." }, { "key": "premium", "prompt": "...
       700,
     );
 
-    const out: Array<{ key: string; label: string; description: string; prompt: string; url: string }> = [];
+    const out: Array<{ key: string; label: string; description: string; prompt: string; url: string; model: string }> = [];
     for (const angle of VARIANT_ANGLES) {
       const p = prompts.find(x => x.key === angle.key)?.prompt
         ?? `${input.product.name}, ${styleDesc}, ${angle.desc}, professional Meta Ads creative, photorealistic, no watermark`;
-      const dataUrl = await this.openai.generateImage(p, input.format);
-      const url = await this.persist(dataUrl, 'image');
-      out.push({ key: angle.key, label: angle.label, description: angle.desc, prompt: p, url });
+      const r = await this.imageProvider.generate({ prompt: p, format: input.format, quality: input.quality ?? 'standard', referenceImage: input.referenceImage });
+      const url = await this.persist(r.dataUrl, 'image');
+      out.push({ key: angle.key, label: angle.label, description: angle.desc, prompt: p, url, model: r.model });
     }
     return out;
   }
 
   // Regenerar UNA sola imagen (para "no me gusta esta variante")
-  async generateSingleImage(input: { product: ProductInfo; objective: string; style: string; format: Fmt; angleKey?: string }) {
+  async generateSingleImage(input: { product: ProductInfo; objective: string; style: string; format: Fmt; angleKey?: string; quality?: 'standard' | 'premium'; referenceImage?: string }) {
     const styleDesc = STYLES[input.style] ?? STYLES.profesional;
     const angle = VARIANT_ANGLES.find(a => a.key === input.angleKey) ?? VARIANT_ANGLES[0];
     const prompt = await this.openai.chat(
@@ -125,12 +127,12 @@ JSON: [ { "key": "oferta", "prompt": "..." }, { "key": "premium", "prompt": "...
       `Producto: ${JSON.stringify(input.product)}. Estilo: ${styleDesc}. Ángulo: ${angle.label} (${angle.desc}). Un prompt visual en inglés, con composición/iluminación/fondo/espacio para texto, sin watermark.`,
       250,
     );
-    const dataUrl = await this.openai.generateImage(prompt.trim() || `${input.product.name}, ${styleDesc}`, input.format);
-    const url = await this.persist(dataUrl, 'image');
-    return { key: angle.key, label: angle.label, description: angle.desc, prompt: prompt.trim(), url };
+    const r = await this.imageProvider.generate({ prompt: prompt.trim() || `${input.product.name}, ${styleDesc}`, format: input.format, quality: input.quality ?? 'standard', referenceImage: input.referenceImage });
+    const url = await this.persist(r.dataUrl, 'image');
+    return { key: angle.key, label: angle.label, description: angle.desc, prompt: prompt.trim(), url, model: r.model };
   }
 
-  // ── PASO 5: Video (GPT arma animación según categoría → Magnific/Kling) ──────
+  // ── PASO 5: Video (GPT arma la animación según el producto → VideoProvider) ──
   async generateVideo(input: { imageBase64: string; product: ProductInfo; style: string; duration: '5' | '10' }) {
     const animation = await this.openai.chat(
       'Sos director de cine publicitario. Describís el movimiento de cámara/animación para animar una imagen de producto.',
@@ -138,8 +140,13 @@ JSON: [ { "key": "oferta", "prompt": "..." }, { "key": "premium", "prompt": "...
 Escribí en INGLÉS una instrucción de animación ESPECÍFICA para este tipo de producto (no genérica). Ej: gastronómico→vapor y movimiento de ingredientes; automotriz→travelling y reflejos; tecnológico→partículas e iluminación cinematográfica; retail→zoom y movimiento del producto. Máximo 2 frases, solo el movimiento.`,
       150,
     );
-    const videoUrl = await this.magnific.generateVideo(input.imageBase64, animation.trim() || 'smooth cinematic camera movement, subtle zoom', input.duration);
-    return { videoUrl, animationPrompt: animation.trim() };
+    const r = await this.videoProvider.generate({
+      image: input.imageBase64,
+      prompt: animation.trim() || 'smooth cinematic camera movement, subtle zoom',
+      duration: Number(input.duration) as 5 | 10,
+      resolution: '1080p',
+    });
+    return { videoUrl: r.url, animationPrompt: animation.trim(), model: r.model, seconds: r.seconds };
   }
 
   // ── PASO 6: Copy publicitario (3 variantes) ─────────────────────────────────
@@ -167,23 +174,6 @@ JSON: [ { "key": "conversion", "title": "", "body": "", "cta": "", "description"
       this.logger.warn(`persist falló (${e.message}) — devuelvo data URL`);
       return dataUrl; // fallback: el front igual lo renderiza
     }
-  }
-
-  // ── CRÉDITOS ────────────────────────────────────────────────────────────────
-  async getCredits(userId: string): Promise<number> {
-    const { rows } = await this.db.query('SELECT ai_credits FROM users WHERE id = $1', [userId]);
-    return rows[0]?.ai_credits ?? 0;
-  }
-
-  // Cobra `cost` créditos salvo que sea admin. Lanza si no alcanza.
-  async charge(userId: string, role: string, cost: number): Promise<number> {
-    if (role === 'admin' || cost <= 0) return this.getCredits(userId);
-    const { rows } = await this.db.query(
-      'UPDATE users SET ai_credits = ai_credits - $2 WHERE id = $1 AND ai_credits >= $2 RETURNING ai_credits',
-      [userId, cost],
-    );
-    if (!rows.length) throw new BadRequestException('SIN_CREDITOS');
-    return rows[0].ai_credits;
   }
 
   // ── HISTORIAL ("Mis creativos") ─────────────────────────────────────────────

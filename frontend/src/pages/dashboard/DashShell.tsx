@@ -19,6 +19,7 @@ const NAV_MAIN = [
 ];
 
 const NAV_ACCOUNT = [
+  { path: '/dashboard/credits', label: 'Créditos',    icon: Zap },
   { path: '/dashboard/billing', label: 'Facturación', icon: CreditCard },
   { path: '/dashboard/profile', label: 'Mi perfil',   icon: User },
 ];

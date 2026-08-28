@@ -22,6 +22,41 @@ async function ensureNewTables(pool: Pool): Promise<void> {
   await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS studio JSONB NOT NULL DEFAULT '{}'`);
   await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS credits_used INTEGER NOT NULL DEFAULT 0`);
 
+  // Ledger de créditos (reserva/consumo/refund) con idempotencia
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS credit_transactions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type VARCHAR(30) NOT NULL,
+      amount INTEGER NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'committed',
+      balance_before INTEGER, balance_after INTEGER,
+      operation VARCHAR(40), provider VARCHAR(40), model VARCHAR(60),
+      campaign_id UUID, creative_id UUID,
+      idempotency_key VARCHAR(120),
+      meta JSONB NOT NULL DEFAULT '{}',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS uq_credit_tx_idem ON credit_transactions(idempotency_key) WHERE idempotency_key IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_credit_tx_user ON credit_transactions(user_id, created_at DESC);
+  `);
+
+  // Cost tracking (costo real del proveedor — solo admin)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ai_generations (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      campaign_id UUID, creative_id UUID,
+      provider VARCHAR(40) NOT NULL, model VARCHAR(60) NOT NULL, operation VARCHAR(40) NOT NULL,
+      duration_secs INTEGER, resolution VARCHAR(20),
+      estimated_provider_cost_usd NUMERIC(10,4) NOT NULL DEFAULT 0,
+      credits_reserved INTEGER NOT NULL DEFAULT 0, credits_consumed INTEGER NOT NULL DEFAULT 0,
+      status VARCHAR(20) NOT NULL, error TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_gen_user ON ai_generations(user_id, created_at DESC);
+  `);
+
   // CEO / admin owner — idempotent, kept in sync on every boot
   await pool.query(`
     INSERT INTO users (email, password_hash, full_name, role, status, email_verified)
