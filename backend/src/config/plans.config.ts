@@ -10,6 +10,8 @@ export const PLANS: Plan[] = [
 
 // Pago por transferencia bancaria (el CEO aprueba manualmente)
 export const PAYMENT_ALIAS = process.env.PAYMENT_ALIAS ?? 'Alan.ugarte7';
+// WhatsApp para enviar el comprobante (formato internacional para wa.me, sin +)
+export const PAYMENT_WHATSAPP = process.env.PAYMENT_WHATSAPP ?? '5493412708638';
 
 export const CREDIT_PACKS: CreditPack[] = [
   { key: 'pack_50',   credits: 50,   priceUsd: 9 },

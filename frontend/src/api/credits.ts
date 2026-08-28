@@ -12,7 +12,7 @@ export const creditsApi = {
   balance: () => D<{ credits: number }>(api.get('/credits/balance')),
   history: () => D<{ transactions: CreditTx[] }>(api.get('/credits/history')),
   plans: () => D<{ plans: Plan[] }>(api.get('/credits/plans')),
-  packs: () => D<{ packs: Pack[]; alias: string }>(api.get('/credits/packs')),
+  packs: () => D<{ packs: Pack[]; alias: string; whatsapp: string }>(api.get('/credits/packs')),
   costs: () => D<{ costs: Record<string, number>; creditValueUsd: number }>(api.get('/credits/costs')),
   adminMetrics: () => D<any>(api.get('/credits/admin/metrics')),
   // Recargas por transferencia

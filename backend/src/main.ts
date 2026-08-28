@@ -26,6 +26,10 @@ async function bootstrap() {
     logger: WinstonModule.createLogger(createWinstonLogger('bootstrap')),
   });
 
+  // Subimos el límite de body: los comprobantes y fotos van como base64 (pueden pesar varios MB)
+  app.useBodyParser('json', { limit: '25mb' });
+  app.useBodyParser('urlencoded', { limit: '25mb', extended: true });
+
   const config = app.get(ConfigService);
   const port = config.get<number>('port', 3000);
   const env = config.get<string>('nodeEnv', 'development');

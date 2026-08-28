@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreditsService } from './credits.service';
 import { CostTrackingService } from './cost-tracking.service';
 import { CREDIT_COSTS, CREDIT_VALUE_USD, estimateProviderCost, CreditOperation } from '../config/credits.config';
-import { PLANS, CREDIT_PACKS, PAYMENT_ALIAS } from '../config/plans.config';
+import { PLANS, CREDIT_PACKS, PAYMENT_ALIAS, PAYMENT_WHATSAPP } from '../config/plans.config';
 
 @ApiTags('credits')
 @ApiBearerAuth()
@@ -23,7 +23,7 @@ export class CreditsController {
   plans() { return { plans: PLANS }; }
 
   @Get('packs')
-  packs() { return { packs: CREDIT_PACKS, alias: PAYMENT_ALIAS }; }
+  packs() { return { packs: CREDIT_PACKS, alias: PAYMENT_ALIAS, whatsapp: PAYMENT_WHATSAPP }; }
 
   // ── Recargas por transferencia (usuario) ────────────────────────────────────
   @Post('topup') @HttpCode(HttpStatus.OK)

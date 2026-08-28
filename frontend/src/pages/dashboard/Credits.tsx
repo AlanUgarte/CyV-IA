@@ -24,7 +24,10 @@ export default function Credits() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [packs, setPacks] = useState<Pack[]>([]);
   const [alias, setAlias] = useState('Alan.ugarte7');
+  const [whatsapp, setWhatsapp] = useState('5493412708638');
   const [topups, setTopups] = useState<Topup[]>([]);
+
+  const waLink = (pack: Pack) => `https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola! Transferí US$${pack.priceUsd} por ${pack.credits} créditos (Conversia AI). Adjunto el comprobante.`)}`;
   const [sel, setSel] = useState<Pack | null>(null);
   const [receipt, setReceipt] = useState<string | undefined>();
   const [sending, setSending] = useState(false);
@@ -35,8 +38,14 @@ export default function Credits() {
   const submitTopup = async () => {
     if (!sel) return;
     setSending(true);
-    try { await creditsApi.topup(sel.key, receipt); setSel(null); setReceipt(undefined); loadTopups(); }
-    catch { alert('No se pudo enviar la solicitud.'); }
+    const pack = sel;
+    try {
+      await creditsApi.topup(pack.key, receipt);
+      // También lo enviamos por WhatsApp al número del negocio (adjuntan el comprobante ahí)
+      window.open(waLink(pack), '_blank');
+      setSel(null); setReceipt(undefined); loadTopups();
+    }
+    catch { alert('No se pudo registrar la solicitud. Igual podés enviar el comprobante por WhatsApp.'); }
     finally { setSending(false); }
   };
 
@@ -44,7 +53,7 @@ export default function Credits() {
     creditsApi.balance().then(r => setCredits(r.credits)).catch(() => setCredits(0));
     creditsApi.history().then(r => setTxs(r.transactions)).catch(() => {});
     creditsApi.plans().then(r => setPlans(r.plans)).catch(() => {});
-    creditsApi.packs().then(r => { setPacks(r.packs); setAlias(r.alias); }).catch(() => {});
+    creditsApi.packs().then(r => { setPacks(r.packs); setAlias(r.alias); if (r.whatsapp) setWhatsapp(r.whatsapp); }).catch(() => {});
     loadTopups();
   }, []);
 
@@ -114,9 +123,10 @@ export default function Credits() {
             {receipt ? <span style={{ color: C.green, fontSize: 13 }}>✓ Comprobante cargado</span> : <span style={{ color: C.textMuted, fontSize: 13 }}>📎 Subir comprobante (imagen o PDF)</span>}
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" hidden onChange={async e => e.target.files?.[0] && setReceipt(await toBase64(e.target.files[0]))} />
+          <a href={waLink(sel)} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', background: '#25D366', color: '#04140d', fontWeight: 700, fontSize: 13, padding: '10px', borderRadius: 10, textDecoration: 'none', marginBottom: 10 }}>📲 Enviar comprobante por WhatsApp</a>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button style={{ ...btnPrimary, width: 'auto', background: 'transparent', color: C.text, border: `1px solid ${C.border}` }} onClick={() => setSel(null)}>Cancelar</button>
-            <button style={{ ...btnPrimary, width: 'auto' }} disabled={!receipt || sending} onClick={submitTopup}>{sending ? 'Enviando…' : 'Enviar solicitud'}</button>
+            <button style={{ ...btnPrimary, width: 'auto' }} disabled={!receipt || sending} onClick={submitTopup}>{sending ? 'Enviando…' : 'Registrar solicitud'}</button>
           </div>
         </Overlay>
       )}
