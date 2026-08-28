@@ -18,6 +18,7 @@ import { HealthModule } from './health/health.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { GenerativeModule } from './generative/generative.module';
+import { CreativeModule } from './creative/creative.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import configuration from './config/configuration';
 
@@ -75,6 +76,7 @@ import configuration from './config/configuration';
     UploadsModule,
     IntegrationsModule,
     GenerativeModule,
+    CreativeModule,
   ],
 })
 export class AppModule implements NestModule {

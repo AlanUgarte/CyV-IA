@@ -28,7 +28,7 @@ const DashShell       = lazyLoad(() => import('../pages/dashboard/DashShell'));
 const DashOverview    = lazyLoad(() => import('../pages/dashboard/DashOverview'));
 const Campaigns       = lazyLoad(() => import('../pages/dashboard/Campaigns'));
 const NewCampaign     = lazyLoad(() => import('../pages/dashboard/NewCampaign'));
-const Creatives       = lazyLoad(() => import('../pages/dashboard/Creatives'));
+const Creatives       = lazyLoad(() => import('../pages/dashboard/AICreativeStudio'));
 const Reports         = lazyLoad(() => import('../pages/dashboard/Reports'));
 const Integrations    = lazyLoad(() => import('../pages/dashboard/Integrations'));
 const Billing         = lazyLoad(() => import('../pages/dashboard/Billing'));

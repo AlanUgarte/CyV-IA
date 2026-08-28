@@ -29,7 +29,7 @@ export class GenerativeController {
       body.format ?? '9:16',
       body.hook,
     );
-    return { data: { imageBase64 } };
+    return { imageBase64 };
   }
 
   @Post('openai-image')
@@ -51,7 +51,7 @@ export class GenerativeController {
       body.description,
       body.prompt,
     );
-    return { data: { imageBase64 } };
+    return { imageBase64 };
   }
 
   @Post('image-prompt')
@@ -75,7 +75,7 @@ export class GenerativeController {
       imageBase64: body.imageBase64,
       mimeType:    body.mimeType,
     });
-    return { data: { prompt } };
+    return { prompt };
   }
 
   @Post('video')
@@ -91,6 +91,6 @@ export class GenerativeController {
       body.format ?? '9:16',
       body.movement ?? 'zoom_in',
     );
-    return { data: { videoBase64 } };
+    return { videoBase64 };
   }
 }

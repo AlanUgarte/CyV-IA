@@ -16,6 +16,12 @@ async function ensureNewTables(pool: Pool): Promise<void> {
     );
   `);
 
+  // AI Creative Studio: créditos por usuario + campos del studio en creatives
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_credits INTEGER NOT NULL DEFAULT 100`);
+  await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS video_url TEXT`);
+  await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS studio JSONB NOT NULL DEFAULT '{}'`);
+  await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS credits_used INTEGER NOT NULL DEFAULT 0`);
+
   // CEO / admin owner — idempotent, kept in sync on every boot
   await pool.query(`
     INSERT INTO users (email, password_hash, full_name, role, status, email_verified)

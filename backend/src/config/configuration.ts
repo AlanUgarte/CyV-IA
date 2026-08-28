@@ -70,6 +70,7 @@ export default () => ({
 
   openai: {
     apiKey: process.env.OPENAI_API_KEY ?? '',
+    chatModel: process.env.OPENAI_CHAT_MODEL ?? 'gpt-4o-mini', // brain: análisis/estrategia/prompts/copy
   },
 
   magnific: {

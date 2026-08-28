@@ -14,6 +14,38 @@ import { useAuth } from '../../hooks/useAuth';
 import { Tag, Spinner } from '../../components/ui';
 import { campaignsApi, type CampaignRow, type DashboardSummary, normalizeCtr, normalizeRoas } from '../../api/campaigns';
 import { aiApi } from '../../api/ai';
+import { creativeApi } from '../../api/creative';
+
+function AICreativeBanner({ navigate }: { navigate: (p: string) => void }) {
+  const [st, setSt] = useState<{ creatives: number; images: number; videos: number; credits_used: number; this_month: number } | null>(null);
+  useEffect(() => { creativeApi.stats().then(setSt).catch(() => {}); }, []);
+  const stat = (label: string, value: number | string) => (
+    <div style={{ minWidth: 90 }}>
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 22, color: '#fff' }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.7)' }}>{label}</div>
+    </div>
+  );
+  return (
+    <div style={{ background: 'linear-gradient(120deg,#7c5cfc,#4da6ff)', borderRadius: 18, padding: '22px 24px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 18 }}>
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.8)', letterSpacing: 1, textTransform: 'uppercase' }}>AI Creative Studio</div>
+        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 24, color: '#fff', margin: '4px 0 2px' }}>Creá una publicidad completa con IA</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)' }}>Producto → imagen → video → copy, en minutos.</div>
+      </div>
+      <div style={{ display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap' }}>
+        {st && (
+          <div style={{ display: 'flex', gap: 22 }}>
+            {stat('Creativos', st.creatives)}
+            {stat('Imágenes', st.images)}
+            {stat('Videos', st.videos)}
+            {stat('Este mes', st.this_month)}
+          </div>
+        )}
+        <button onClick={() => navigate('/dashboard/creatives')} style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 12, padding: '12px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Crear nuevo creativo</button>
+      </div>
+    </div>
+  );
+}
 
 /* ── Mock data ──────────────────────────────────────────────────────────────── */
 
@@ -211,6 +243,9 @@ export default function DashOverview() {
           Nueva campaña
         </button>
       </motion.div>
+
+      {/* ── AI Creative Studio ──────────────────────────────────────────────── */}
+      <AICreativeBanner navigate={navigate} />
 
       {/* ── KPI cards ───────────────────────────────────────────────────────── */}
       <div className="g4 mb-5">
