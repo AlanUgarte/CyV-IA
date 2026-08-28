@@ -64,7 +64,7 @@ INSERT INTO users (
 ) VALUES (
   'a0000000-0000-0000-0000-000000000001',
   'admin@aicommerceads.com',
-  '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGWmKwPBjOdJN7w6qQ5XgXh3X1G', -- AdminACA2026!#
+  '$2b$12$/zOIHdrJdztMPDtNq9YJuu1/QCDq19Xr2xeL.E99ScfBEU4p3cpsW', -- AdminACA2026!#
   'Alan Ugarte — Admin',
   'admin',
   'active',
@@ -118,11 +118,11 @@ ON CONFLICT (name) DO NOTHING;
 -- ─── DEMO USERS (para testear) ────────────────────────────────────────────────
 -- Password para todos los demo: Demo@2026!
 INSERT INTO users (email, password_hash, full_name, role, status, email_verified) VALUES
-  ('maria@ejemplo.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGWmKwPBjOdJN7w6qQ5XgXh3X1G', 'María González', 'client', 'active', TRUE),
-  ('carlos@ejemplo.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGWmKwPBjOdJN7w6qQ5XgXh3X1G', 'Carlos Romero', 'client', 'active', TRUE),
-  ('laura@ejemplo.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGWmKwPBjOdJN7w6qQ5XgXh3X1G', 'Laura Martínez', 'client', 'suspended', TRUE),
-  ('diego@ejemplo.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGWmKwPBjOdJN7w6qQ5XgXh3X1G', 'Diego Fernández', 'client', 'active', TRUE),
-  ('soporte@aicommerceads.com', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TiGWmKwPBjOdJN7w6qQ5XgXh3X1G', 'Equipo Soporte', 'client', 'active', TRUE)
+  ('maria@ejemplo.com', '$2b$12$IlcH2X/tKBQUGSa5lDdoHuqxuTNNfpL1FccmsF6X7VUhqTLkeiBku', 'María González', 'client', 'active', TRUE),
+  ('carlos@ejemplo.com', '$2b$12$IlcH2X/tKBQUGSa5lDdoHuqxuTNNfpL1FccmsF6X7VUhqTLkeiBku', 'Carlos Romero', 'client', 'active', TRUE),
+  ('laura@ejemplo.com', '$2b$12$IlcH2X/tKBQUGSa5lDdoHuqxuTNNfpL1FccmsF6X7VUhqTLkeiBku', 'Laura Martínez', 'client', 'suspended', TRUE),
+  ('diego@ejemplo.com', '$2b$12$IlcH2X/tKBQUGSa5lDdoHuqxuTNNfpL1FccmsF6X7VUhqTLkeiBku', 'Diego Fernández', 'client', 'active', TRUE),
+  ('soporte@aicommerceads.com', '$2b$12$IlcH2X/tKBQUGSa5lDdoHuqxuTNNfpL1FccmsF6X7VUhqTLkeiBku', 'Equipo Soporte', 'client', 'active', TRUE)
 ON CONFLICT (email) DO NOTHING;
 
 -- Asignar planes a los demo users

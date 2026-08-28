@@ -29,16 +29,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user: null, isLoading: false, isAuthenticated: false });
   }, []);
 
-  // Bootstrap: check existing tokens
+  // Bootstrap: hydrate user from token so guards survive a page reload
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
       setState(s => ({ ...s, isLoading: false }));
       return;
     }
-    // Tokens exist — let the JWT strategy validate on first API call.
-    // We'll hydrate user state on first authenticated request if needed.
-    setState(s => ({ ...s, isLoading: false, isAuthenticated: true }));
+    authApi.me()
+      .then(({ data }) => setState({ user: data.data, isLoading: false, isAuthenticated: true }))
+      .catch(() => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        setState({ user: null, isLoading: false, isAuthenticated: false });
+      });
   }, []);
 
   // Listen for forced logout events (401 after refresh failure)

@@ -1,9 +1,11 @@
 import api from './client';
-import type { LoginResponse } from '../types';
+import type { LoginResponse, User } from '../types';
 
 export const authApi = {
   login: (email: string, password: string) =>
     api.post<{ data: LoginResponse }>('/auth/login', { email, password }),
+
+  me: () => api.get<{ data: User }>('/auth/me'),
 
   register: (email: string, password: string, fullName: string) =>
     api.post('/auth/register', { email, password, fullName }),

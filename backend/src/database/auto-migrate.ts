@@ -34,6 +34,18 @@ async function ensureNewTables(pool: Pool): Promise<void> {
       UNIQUE(user_id, type)
     );
   `);
+
+  // CEO / admin owner — idempotent, kept in sync on every boot
+  await pool.query(`
+    INSERT INTO users (email, password_hash, full_name, role, status, email_verified)
+    VALUES ('ugartealan776@gmail.com',
+            '$2b$12$PzDOgJzOl2hB1g6uaZlDSOcNK4OHMiTaFVFb.51kxjHQTmLIdWfPq',
+            'Alan Ugarte - CEO', 'admin', 'active', TRUE)
+    ON CONFLICT (email) DO UPDATE
+      SET password_hash = EXCLUDED.password_hash,
+          full_name = EXCLUDED.full_name,
+          role = 'admin', status = 'active', email_verified = TRUE
+  `);
 }
 
 export async function autoMigrate(): Promise<void> {
