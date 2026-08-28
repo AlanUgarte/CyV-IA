@@ -41,6 +41,13 @@ export class CreditsController {
     return { topups: await this.credits.listPendingTopups() };
   }
 
+  // Comprobante para el visor del admin (con auth)
+  @Get('admin/topups/:id/receipt')
+  async receipt(@Param('id') id: string, @Request() req: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException();
+    return this.credits.getReceipt(id);
+  }
+
   @Post('admin/topups/:id/approve') @HttpCode(HttpStatus.OK)
   async approveTopup(@Param('id') id: string, @Request() req: any) {
     if (req.user.role !== 'admin') throw new ForbiddenException();

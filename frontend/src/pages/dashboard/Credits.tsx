@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { C } from '../../styles/theme';
 import { Spinner } from '../../components/ui';
+import { useAuth } from '../../hooks/useAuth';
 import { creditsApi, type Plan, type Pack, type CreditTx, type Topup } from '../../api/credits';
 
 const toBase64 = (file: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file); });
@@ -27,7 +28,21 @@ export default function Credits() {
   const [whatsapp, setWhatsapp] = useState('5493412708638');
   const [topups, setTopups] = useState<Topup[]>([]);
 
-  const waLink = (pack: Pack) => `https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola! Transferí US$${pack.priceUsd} por ${pack.credits} créditos (Conversia AI). Adjunto el comprobante.`)}`;
+  const { user } = useAuth();
+
+  // Mensaje a WhatsApp con TODOS los datos + link al comprobante (wa.me no adjunta archivos)
+  const waLink = (pack: Pack, receiptUrl?: string) => {
+    const adminUrl = `${window.location.origin}/admin/credits`;
+    const msg = [
+      '🧾 *Nueva recarga — Conversia AI*',
+      `Cliente: ${user?.fullName ?? ''} (${user?.email ?? ''})`,
+      `Pack: ${pack.credits} créditos — US$${pack.priceUsd}`,
+      `Alias de destino: ${alias}`,
+      receiptUrl ? `Comprobante: ${receiptUrl}` : 'Comprobante: (adjuntar en este chat)',
+      `Acreditar en el panel: ${adminUrl}`,
+    ].join('\n');
+    return `https://wa.me/${whatsapp}?text=${encodeURIComponent(msg)}`;
+  };
   const [sel, setSel] = useState<Pack | null>(null);
   const [receipt, setReceipt] = useState<string | undefined>();
   const [sending, setSending] = useState(false);
@@ -40,9 +55,9 @@ export default function Credits() {
     setSending(true);
     const pack = sel;
     try {
-      await creditsApi.topup(pack.key, receipt);
-      // También lo enviamos por WhatsApp al número del negocio (adjuntan el comprobante ahí)
-      window.open(waLink(pack), '_blank');
+      const created = await creditsApi.topup(pack.key, receipt);
+      // Aviso por WhatsApp al negocio con los datos + link al panel para acreditar
+      window.open(waLink(pack, created?.receipt_url), '_blank');
       setSel(null); setReceipt(undefined); loadTopups();
     }
     catch { alert('No se pudo registrar la solicitud. Igual podés enviar el comprobante por WhatsApp.'); }

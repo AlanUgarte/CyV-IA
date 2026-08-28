@@ -17,6 +17,19 @@ export default function AdminCredits() {
 
   const approve = async (id: string) => { setBusy(id); try { await creditsApi.approveTopup(id); load(); } finally { setBusy(null); } };
   const reject = async (id: string) => { setBusy(id); try { await creditsApi.rejectTopup(id); load(); } finally { setBusy(null); } };
+  const viewReceipt = async (id: string) => {
+    try {
+      const r = await creditsApi.receipt(id);
+      if (r.dataUrl) {
+        const [meta, b64] = r.dataUrl.split(',');
+        const mime = /data:(.+?);/.exec(meta)?.[1] ?? 'image/png';
+        const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+        window.open(url, '_blank');
+      } else if (r.url) { window.open(r.url, '_blank'); }
+      else alert('No hay comprobante adjunto.');
+    } catch { alert('No se pudo abrir el comprobante.'); }
+  };
 
   const m = metrics ?? {};
   const stat = (label: string, value: any, color: string = C.text) => (
@@ -50,7 +63,7 @@ export default function AdminCredits() {
                 <div style={{ fontWeight: 700 }}>{t.full_name} <span style={{ color: C.textMuted, fontWeight: 400, fontSize: 13 }}>· {t.email}</span></div>
                 <div style={{ fontSize: 13, color: C.textMuted }}>{t.credits} créditos · US${t.amount_usd} · {new Date(t.created_at).toLocaleString()}</div>
               </div>
-              {t.receipt_url && <a href={t.receipt_url} target="_blank" rel="noreferrer" style={{ color: C.blue, fontSize: 13, fontWeight: 600 }}>Ver comprobante ↗</a>}
+              {(t as any).has_receipt || t.receipt_url ? <button onClick={() => viewReceipt(t.id)} style={{ background: 'transparent', border: 'none', color: C.blue, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Ver comprobante ↗</button> : <span style={{ color: C.textDim, fontSize: 12 }}>sin comprobante</span>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button disabled={busy === t.id} onClick={() => approve(t.id)} style={{ background: C.gradGreen, color: '#04140d', border: 'none', borderRadius: 9, padding: '8px 14px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✓ Aprobar</button>
                 <button disabled={busy === t.id} onClick={() => reject(t.id)} style={{ background: 'transparent', color: C.red, border: `1px solid ${C.red}`, borderRadius: 9, padding: '8px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Rechazar</button>

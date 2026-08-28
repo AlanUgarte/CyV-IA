@@ -137,35 +137,49 @@ export class CreditsService {
   async createTopup(userId: string, packKey: string, receiptBase64?: string) {
     const pack = CREDIT_PACKS.find(p => p.key === packKey);
     if (!pack) throw new BadRequestException('Pack inválido');
+    // Guardamos el comprobante EN LA DB (el disco de Railway se borra en cada deploy).
+    // Si hay S3/R2 configurado, además subimos una copia (best-effort).
     let receiptUrl: string | null = null;
     if (receiptBase64) {
       const m = receiptBase64.match(/^data:(.+?);base64,(.*)$/);
       if (m) {
-        const ext = m[1].includes('pdf') ? 'pdf' : m[1].includes('png') ? 'png' : 'jpg';
-        const saved = await this.storage.save(Buffer.from(m[2], 'base64'), `receipt_${Date.now()}.${ext}`, m[1]);
-        receiptUrl = saved.url;
+        try {
+          const ext = m[1].includes('pdf') ? 'pdf' : m[1].includes('png') ? 'png' : 'jpg';
+          const saved = await this.storage.save(Buffer.from(m[2], 'base64'), `receipt_${Date.now()}.${ext}`, m[1]);
+          if (saved.url && !saved.url.includes('localhost')) receiptUrl = saved.url;
+        } catch { /* la DB es la fuente confiable */ }
       }
     }
     const { rows } = await this.db.query(
-      `INSERT INTO credit_purchases (user_id, pack_key, credits, amount_usd, receipt_url, status)
-       VALUES ($1,$2,$3,$4,$5,'pending') RETURNING *`,
-      [userId, pack.key, pack.credits, pack.priceUsd, receiptUrl]);
+      `INSERT INTO credit_purchases (user_id, pack_key, credits, amount_usd, receipt_url, receipt_data, status)
+       VALUES ($1,$2,$3,$4,$5,$6,'pending')
+       RETURNING id, pack_key, credits, amount_usd, receipt_url, status, created_at`,
+      [userId, pack.key, pack.credits, pack.priceUsd, receiptUrl, receiptBase64 ?? null]);
     return rows[0];
   }
 
   async listUserTopups(userId: string) {
     const { rows } = await this.db.query(
-      `SELECT id, pack_key, credits, amount_usd, receipt_url, status, created_at
+      `SELECT id, pack_key, credits, amount_usd, status, created_at, (receipt_data IS NOT NULL OR receipt_url IS NOT NULL) AS has_receipt
        FROM credit_purchases WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`, [userId]);
     return rows;
   }
 
   async listPendingTopups() {
     const { rows } = await this.db.query(
-      `SELECT cp.*, u.email, u.full_name
+      `SELECT cp.id, cp.pack_key, cp.credits, cp.amount_usd, cp.receipt_url, cp.status, cp.created_at,
+              (cp.receipt_data IS NOT NULL OR cp.receipt_url IS NOT NULL) AS has_receipt,
+              u.email, u.full_name
        FROM credit_purchases cp JOIN users u ON u.id = cp.user_id
        WHERE cp.status = 'pending' ORDER BY cp.created_at ASC`);
     return rows;
+  }
+
+  // Devuelve el comprobante (data URL) para el visor del admin
+  async getReceipt(id: string): Promise<{ dataUrl: string | null; url: string | null }> {
+    const { rows } = await this.db.query('SELECT receipt_data, receipt_url FROM credit_purchases WHERE id = $1', [id]);
+    if (!rows.length) throw new BadRequestException('No encontrado');
+    return { dataUrl: rows[0].receipt_data ?? null, url: rows[0].receipt_url ?? null };
   }
 
   // Aprobar: acredita créditos y marca la solicitud (idempotente: solo si pending)

@@ -71,6 +71,8 @@ async function ensureNewTables(pool: Pool): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_credit_purchases_status ON credit_purchases(status, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id, created_at DESC);
   `);
+  // Comprobante guardado en DB (persistente; el disco de Railway es efímero)
+  await pool.query(`ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS receipt_data TEXT`);
 
   // CEO / admin owner — idempotent, kept in sync on every boot
   await pool.query(`

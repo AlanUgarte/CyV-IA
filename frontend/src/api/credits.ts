@@ -19,6 +19,7 @@ export const creditsApi = {
   topup: (packKey: string, receiptBase64?: string) => D<Topup>(api.post('/credits/topup', { packKey, receiptBase64 }, { timeout: 60_000 })),
   myTopups: () => D<{ topups: Topup[] }>(api.get('/credits/topups')),
   pendingTopups: () => D<{ topups: Topup[] }>(api.get('/credits/admin/topups')),
+  receipt: (id: string) => D<{ dataUrl: string | null; url: string | null }>(api.get(`/credits/admin/topups/${id}/receipt`)),
   approveTopup: (id: string) => D<any>(api.post(`/credits/admin/topups/${id}/approve`, {})),
   rejectTopup: (id: string, note?: string) => D<any>(api.post(`/credits/admin/topups/${id}/reject`, { note })),
 };
