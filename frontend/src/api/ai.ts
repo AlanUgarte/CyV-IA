@@ -24,4 +24,15 @@ export const aiApi = {
 
   generateVideo: (imageBase64: string, format: '9:16' | '4:5' | '1:1', movement: 'zoom_in' | 'zoom_out' | 'pan_right' | 'pan_left') =>
     api.post<{ data: { videoBase64: string } }>('/generative/video', { imageBase64, format, movement }, { timeout: 120_000 }),
+
+  // OpenAI gpt-image-1 — key stays server-side (no VITE_OPENAI_API_KEY in the browser)
+  generateOpenAIImage: (body: {
+    product: string;
+    style?: string;
+    format?: '9:16' | '4:5' | '1:1';
+    hook?: string;
+    description?: string;
+    prompt?: string;
+  }) =>
+    api.post<{ data: { imageBase64: string } }>('/generative/openai-image', body, { timeout: 120_000 }),
 };

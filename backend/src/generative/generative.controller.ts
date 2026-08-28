@@ -32,6 +32,28 @@ export class GenerativeController {
     return { data: { imageBase64 } };
   }
 
+  @Post('openai-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Generar imagen con OpenAI gpt-image-1 (key server-side)' })
+  async generateOpenAIImage(@Body() body: {
+    product: string;
+    style?: string;
+    format?: '9:16' | '4:5' | '1:1';
+    hook?: string;
+    description?: string;
+    prompt?: string;
+  }) {
+    const imageBase64 = await this.svc.generateOpenAIImage(
+      body.product ?? 'producto',
+      body.style ?? 'Producto hero',
+      body.format ?? '9:16',
+      body.hook,
+      body.description,
+      body.prompt,
+    );
+    return { data: { imageBase64 } };
+  }
+
   @Post('image-prompt')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Claude analiza foto del producto y genera prompt optimizado para OpenAI Images' })

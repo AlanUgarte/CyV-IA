@@ -84,6 +84,33 @@ export class GenerativeService {
     return `data:${mime};base64,${b64}`;
   }
 
+  // ── Generate image via OpenAI gpt-image-1 (key stays server-side) ─────────
+  // The frontend used to call OpenAI directly with VITE_OPENAI_API_KEY, which
+  // leaks the key into the browser bundle. This keeps it on the server.
+  async generateOpenAIImage(product: string, style: string, format: Format = '9:16', hook?: string, description?: string, promptOverride?: string): Promise<string> {
+    const key = this.config.get<string>('openai.apiKey') ?? '';
+    if (!key) throw new Error('OPENAI_API_KEY no configurado. Agregalo en Railway → Variables.');
+
+    const size: Record<Format, string> = { '9:16': '1024x1536', '4:5': '1024x1536', '1:1': '1024x1024' };
+    const descPart = description ? `, ${description}` : '';
+    const prompt = promptOverride && promptOverride.length > 20
+      ? promptOverride
+      : `${this.buildPrompt(product, style, hook)}${descPart}`;
+
+    this.logger.log(`[OpenAI] gpt-image-1: "${prompt.slice(0, 60)}..." ${size[format]}`);
+
+    const res = await axios.post('https://api.openai.com/v1/images/generations', {
+      model: 'gpt-image-1', prompt, n: 1, size: size[format], quality: 'medium',
+    }, {
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      timeout: 120_000,
+    });
+
+    const b64 = res.data?.data?.[0]?.b64_json;
+    if (!b64) throw new Error('OpenAI no devolvió imagen');
+    return `data:image/png;base64,${b64}`;
+  }
+
   // ── Generate cinematic video from image using ffmpeg ───────────────────────
 
   async generateVideo(imageBase64: string, format: Format = '9:16', movement: Movement = 'zoom_in'): Promise<string> {
