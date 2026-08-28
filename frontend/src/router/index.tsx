@@ -44,6 +44,7 @@ const AdminFlags      = lazyLoad(() => import('../pages/admin/AdminFlags'));
 const AdminAudit      = lazyLoad(() => import('../pages/admin/AdminAudit'));
 const AdminComms      = lazyLoad(() => import('../pages/admin/AdminComms'));
 const AdminSystem     = lazyLoad(() => import('../pages/admin/AdminSystem'));
+const AdminCredits    = lazyLoad(() => import('../pages/admin/AdminCredits'));
 
 // ── Suspense / loading ────────────────────────────────────────────────────────
 function Fallback() {
@@ -143,6 +144,7 @@ export const router = createBrowserRouter([
       { path: 'audit',        element: <ErrorBoundary><S><AdminAudit /></S></ErrorBoundary> },
       { path: 'comms',        element: <ErrorBoundary><S><AdminComms /></S></ErrorBoundary> },
       { path: 'system',       element: <ErrorBoundary><S><AdminSystem /></S></ErrorBoundary> },
+      { path: 'credits',      element: <ErrorBoundary><S><AdminCredits /></S></ErrorBoundary> },
     ],
   },
 

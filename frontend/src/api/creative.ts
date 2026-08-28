@@ -7,7 +7,7 @@ export interface ProductInfo {
   audience?: string; colors?: string[]; context?: string;
   price?: string; oldPrice?: string; discount?: string; cta?: string;
 }
-export interface ImageVariant { key: string; label: string; description: string; prompt: string; url: string }
+export interface ImageVariant { key: string; label: string; description: string; prompt: string; url: string; model?: string }
 export interface CopyVariant { key: string; title: string; body: string; cta: string; description: string; hashtags: string[] }
 export interface Strategy { chosenStyle: string; concept: string; angle: string; toneNotes: string }
 
@@ -37,6 +37,14 @@ export const creativeApi = {
   copy: (body: { product: ProductInfo; objective: string; style: string }) =>
     D<{ variants: CopyVariant[]; credits: number; creditsUsed: number }>(api.post('/creative/copy', body, { timeout: 60_000 })),
 
+  // UGC (persona IA)
+  creators: () => D<{ creators: any[] }>(api.get('/creative/creators')),
+  ugcAuto: (body: { product: ProductInfo }) =>
+    D<{ creatorKey: string; scene: string; hook: string; action: string; cta: string }>(api.post('/creative/ugc-auto', body, { timeout: 60_000 })),
+  ugc: (body: { product: ProductInfo; creatorKey?: string; scene?: string; hook?: string; action?: string; cta?: string; duration?: '5' | '10'; referenceImage?: string; format?: Fmt }) =>
+    D<{ imageUrl: string; videoUrl: string; creator: { key: string; name: string }; script: any; credits: number; creditsUsed: number }>(api.post('/creative/ugc', body, { timeout: 200_000, ...idem() })),
+
+  favorite: (id: string) => D<{ is_favorite: boolean }>(api.post(`/creative/${id}/favorite`, {})),
   save: (body: any) => D<any>(api.post('/creative', body)),
   list: () => D<any[]>(api.get('/creative')),
   stats: () => D<{ creatives: number; images: number; videos: number; credits_used: number; this_month: number }>(api.get('/creative/stats')),

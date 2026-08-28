@@ -44,7 +44,7 @@ function makeFakePool(startCredits: number) {
 describe('CreditsService (ledger)', () => {
   it('reserva descuenta el saldo y crea la transacción', async () => {
     const pool = makeFakePool(100);
-    const svc = new CreditsService(pool);
+    const svc = new CreditsService(pool, {} as any);
     const { txId, balanceAfter } = await svc.reserve({ userId: 'u1', role: 'client', amount: 5 });
     expect(txId).toBeTruthy();
     expect(balanceAfter).toBe(95);
@@ -53,14 +53,14 @@ describe('CreditsService (ledger)', () => {
 
   it('nunca deja saldo negativo (SIN_CREDITOS)', async () => {
     const pool = makeFakePool(3);
-    const svc = new CreditsService(pool);
+    const svc = new CreditsService(pool, {} as any);
     await expect(svc.reserve({ userId: 'u1', role: 'client', amount: 5 })).rejects.toThrow('SIN_CREDITOS');
     expect(pool._state.credits).toBe(3); // sin cambios
   });
 
   it('idempotencia: misma key no cobra dos veces', async () => {
     const pool = makeFakePool(100);
-    const svc = new CreditsService(pool);
+    const svc = new CreditsService(pool, {} as any);
     const a = await svc.reserve({ userId: 'u1', role: 'client', amount: 10, idempotencyKey: 'k1' });
     const b = await svc.reserve({ userId: 'u1', role: 'client', amount: 10, idempotencyKey: 'k1' });
     expect(a.txId).toBe(b.txId);
@@ -69,7 +69,7 @@ describe('CreditsService (ledger)', () => {
 
   it('admin no consume créditos (bypass)', async () => {
     const pool = makeFakePool(100);
-    const svc = new CreditsService(pool);
+    const svc = new CreditsService(pool, {} as any);
     const { txId } = await svc.reserve({ userId: 'admin', role: 'admin', amount: 50 });
     expect(txId).toBeNull();
     expect(pool._state.credits).toBe(100);
@@ -77,7 +77,7 @@ describe('CreditsService (ledger)', () => {
 
   it('release devuelve los créditos ante un error', async () => {
     const pool = makeFakePool(100);
-    const svc = new CreditsService(pool);
+    const svc = new CreditsService(pool, {} as any);
     const { txId } = await svc.reserve({ userId: 'u1', role: 'client', amount: 20 });
     expect(pool._state.credits).toBe(80);
     await svc.release(txId, 'gen_error');
@@ -86,7 +86,7 @@ describe('CreditsService (ledger)', () => {
 
   it('consume marca la reserva sin tocar el saldo (ya descontado)', async () => {
     const pool = makeFakePool(100);
-    const svc = new CreditsService(pool);
+    const svc = new CreditsService(pool, {} as any);
     const { txId } = await svc.reserve({ userId: 'u1', role: 'client', amount: 7 });
     await svc.consume(txId);
     expect(pool._state.credits).toBe(93);

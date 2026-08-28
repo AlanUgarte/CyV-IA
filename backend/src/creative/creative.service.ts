@@ -4,6 +4,7 @@ import { DATABASE_POOL } from '../database/database.module';
 import { StorageService } from '../uploads/storage.service';
 import { OpenaiService, Fmt } from './openai.service';
 import { IMAGE_PROVIDER, VIDEO_PROVIDER, ImageProvider, VideoProvider } from './providers/types';
+import { CREATOR_PRESETS, SCENE_BY_CATEGORY, creatorByKey } from './creators.config';
 
 // ── Catálogos (concepto → guía para GPT) ─────────────────────────────────────
 export const OBJECTIVES: Record<string, string> = {
@@ -149,6 +150,53 @@ Escribí en INGLÉS una instrucción de animación ESPECÍFICA para este tipo de
     return { videoUrl: r.url, animationPrompt: animation.trim(), model: r.model, seconds: r.seconds };
   }
 
+  // ── UGC: auto-selección de creator/escena/hook/acción según el producto ─────
+  async pickUGC(product: ProductInfo): Promise<{ creatorKey: string; scene: string; hook: string; action: string; cta: string }> {
+    const keys = CREATOR_PRESETS.map(c => `${c.key} (${c.description})`).join(', ');
+    const picked = await this.openai.chatJSON<{ creatorKey: string; scene: string; hook: string; action: string; cta: string }>(
+      'Sos productor de contenido UGC. Elegís el mejor creador virtual y guion para un producto.',
+      `Producto: ${JSON.stringify(product)}. Creadores disponibles: ${keys}.
+Devolvé JSON: { "creatorKey": "<una key>", "scene": "escenario en inglés acorde al producto", "hook": "frase de apertura en español (0-2s)", "action": "qué hace con el producto (2-8s)", "cta": "llamado a la acción (8-10s)" }`,
+      400,
+    );
+    return { ...picked, creatorKey: creatorByKey(picked.creatorKey).key };
+  }
+
+  // ── UGC: genera imagen de persona sintética + producto → video UGC ──────────
+  async generateUGC(input: { product: ProductInfo; creatorKey?: string; scene?: string; hook?: string; action?: string; cta?: string; duration?: '5' | '10'; referenceImage?: string; format?: Fmt }) {
+    const creator = creatorByKey(input.creatorKey);
+    const scene = input.scene || SCENE_BY_CATEGORY[(input.product.category ?? '').toLowerCase()] || creator.scene;
+    const duration = input.duration ?? '10';
+
+    // Imagen: persona SINTÉTICA (sin identidad real) usando el producto, estética UGC vertical
+    const imgPrompt = [
+      `Vertical smartphone-style UGC photo. A completely fictional AI-generated person (${creator.appearance}, age ${creator.ageRange}), NOT a real or identifiable person, NOT a celebrity.`,
+      `In a ${scene}. Naturally holding and using the product "${input.product.name}".`,
+      `Authentic organic content look: natural lighting, casual composition, slight imperfections, like a real Reel/TikTok. Face looking toward camera. No watermark, no text overlay.`,
+    ].join(' ');
+    const img = await this.imageProvider.generate({ prompt: imgPrompt, format: input.format ?? '9:16', quality: 'standard', referenceImage: input.referenceImage });
+    const imageUrl = await this.persist(img.dataUrl, 'image');
+
+    // Video UGC: movimiento natural de persona interactuando con el producto
+    const animation = `Natural UGC video: the person looks at the camera, holds and shows the product, subtle natural body and hand movements, slight handheld camera motion, organic smartphone-recorded feel. Not a TV commercial.`;
+    const vid = await this.videoProvider.generate({ image: img.dataUrl, prompt: animation, duration: Number(duration) as 5 | 10, resolution: '1080p' });
+
+    return {
+      imageUrl, videoUrl: vid.url, model: vid.model, seconds: vid.seconds,
+      creator: { key: creator.key, name: creator.name },
+      script: { hook: input.hook ?? '', action: input.action ?? '', cta: input.cta ?? '' },
+    };
+  }
+
+  // ── Favoritos ────────────────────────────────────────────────────────────────
+  async toggleFavorite(id: string, userId: string) {
+    const { rows } = await this.db.query(
+      `UPDATE creatives SET is_favorite = NOT COALESCE(is_favorite,false) WHERE id = $1 AND user_id = $2 RETURNING is_favorite`,
+      [id, userId]);
+    if (!rows.length) throw new BadRequestException('No encontrado');
+    return { is_favorite: rows[0].is_favorite };
+  }
+
   // ── PASO 6: Copy publicitario (3 variantes) ─────────────────────────────────
   async generateCopy(input: { product: ProductInfo; objective: string; style: string }) {
     const objGuide = OBJECTIVES[input.objective] ?? OBJECTIVES.vender;
@@ -195,7 +243,7 @@ JSON: [ { "key": "conversion", "title": "", "body": "", "cta": "", "description"
 
   async listCreatives(userId: string) {
     const { rows } = await this.db.query(
-      `SELECT id, name, type, format, status, output_url, video_url, studio, credits_used, created_at
+      `SELECT id, name, type, format, status, output_url, video_url, studio, credits_used, COALESCE(is_favorite,false) AS is_favorite, created_at
        FROM creatives WHERE user_id = $1 ORDER BY created_at DESC LIMIT 100`,
       [userId],
     );

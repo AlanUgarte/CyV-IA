@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { C } from '../../styles/theme';
 import { Spinner } from '../../components/ui';
-import { creditsApi, type Plan, type Pack, type CreditTx } from '../../api/credits';
+import { creditsApi, type Plan, type Pack, type CreditTx, type Topup } from '../../api/credits';
+
+const toBase64 = (file: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file); });
+const ST_LABEL: Record<string, { t: string; c: string }> = {
+  pending: { t: 'Pendiente de aprobación', c: '#ffb347' }, approved: { t: 'Aprobado', c: '#00d68f' }, rejected: { t: 'Rechazado', c: '#ff4d6a' },
+};
 
 const OP_LABEL: Record<string, string> = {
   image_standard: 'Imagen', image_premium: 'Imagen premium',
@@ -18,12 +23,29 @@ export default function Credits() {
   const [txs, setTxs] = useState<CreditTx[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [packs, setPacks] = useState<Pack[]>([]);
+  const [alias, setAlias] = useState('Alan.ugarte7');
+  const [topups, setTopups] = useState<Topup[]>([]);
+  const [sel, setSel] = useState<Pack | null>(null);
+  const [receipt, setReceipt] = useState<string | undefined>();
+  const [sending, setSending] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const loadTopups = () => creditsApi.myTopups().then(r => setTopups(r.topups)).catch(() => {});
+  const submitTopup = async () => {
+    if (!sel) return;
+    setSending(true);
+    try { await creditsApi.topup(sel.key, receipt); setSel(null); setReceipt(undefined); loadTopups(); }
+    catch { alert('No se pudo enviar la solicitud.'); }
+    finally { setSending(false); }
+  };
 
   useEffect(() => {
     creditsApi.balance().then(r => setCredits(r.credits)).catch(() => setCredits(0));
     creditsApi.history().then(r => setTxs(r.transactions)).catch(() => {});
     creditsApi.plans().then(r => setPlans(r.plans)).catch(() => {});
-    creditsApi.packs().then(r => setPacks(r.packs)).catch(() => {});
+    creditsApi.packs().then(r => { setPacks(r.packs); setAlias(r.alias); }).catch(() => {});
+    loadTopups();
   }, []);
 
   const usedThisMonth = txs.filter(t => t.type === 'generation' && new Date(t.created_at).getMonth() === new Date().getMonth())
@@ -55,20 +77,66 @@ export default function Credits() {
         </Card>
       </div>
 
-      {/* Packs */}
+      {/* Comprar créditos por transferencia */}
       <Section title="Comprar créditos">
+        <div style={{ ...cardStyle, background: C.accentDim, borderColor: C.borderBright, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 24 }}>🏦</div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontSize: 12, color: C.textMuted }}>Transferí al alias y subí el comprobante. El equipo lo verifica y acredita tus créditos.</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+              <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 20 }}>{alias}</span>
+              <button onClick={() => { navigator.clipboard?.writeText(alias); setCopied(true); setTimeout(() => setCopied(false), 1500); }} style={{ ...btnPrimary, width: 'auto', padding: '5px 12px', fontSize: 12 }}>{copied ? '✓ Copiado' : 'Copiar alias'}</button>
+            </div>
+          </div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 14 }}>
           {packs.map(p => (
-            <div key={p.key} style={cardStyle}>
+            <div key={p.key} style={{ ...cardStyle, border: `2px solid ${sel?.key === p.key ? C.accent : C.border}` }}>
               <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 26 }}>{p.credits}</div>
               <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 12 }}>créditos</div>
               <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 12 }}>US${p.priceUsd}</div>
-              <button style={btnPrimary} title="Requiere checkout (Stripe)">Comprar</button>
+              <button style={sel?.key === p.key ? btnPrimary : { ...btnPrimary, background: 'transparent', color: C.text, border: `1px solid ${C.border}` }} onClick={() => setSel(p)}>{sel?.key === p.key ? '✓ Elegido' : 'Elegir'}</button>
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 12, color: C.textDim, marginTop: 10 }}>El checkout se procesa con el billing existente (Stripe). La compra acredita automáticamente al confirmarse el pago.</p>
       </Section>
+
+      {/* Solicitud (subir comprobante) */}
+      {sel && (
+        <Overlay onClose={() => setSel(null)}>
+          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Recargar {sel.credits} créditos — US${sel.priceUsd}</div>
+          <ol style={{ color: C.textMuted, fontSize: 13, paddingLeft: 18, margin: '0 0 14px', lineHeight: 1.7 }}>
+            <li>Transferí <b style={{ color: C.text }}>US${sel.priceUsd}</b> al alias <b style={{ color: C.accent }}>{alias}</b>.</li>
+            <li>Subí el comprobante.</li>
+            <li>El equipo lo verifica y te acredita los créditos.</li>
+          </ol>
+          <div onClick={() => fileRef.current?.click()} style={{ border: `1.5px dashed ${C.borderBright}`, borderRadius: 12, padding: 18, textAlign: 'center', cursor: 'pointer', marginBottom: 14, background: C.surface2 }}>
+            {receipt ? <span style={{ color: C.green, fontSize: 13 }}>✓ Comprobante cargado</span> : <span style={{ color: C.textMuted, fontSize: 13 }}>📎 Subir comprobante (imagen o PDF)</span>}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*,application/pdf" hidden onChange={async e => e.target.files?.[0] && setReceipt(await toBase64(e.target.files[0]))} />
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button style={{ ...btnPrimary, width: 'auto', background: 'transparent', color: C.text, border: `1px solid ${C.border}` }} onClick={() => setSel(null)}>Cancelar</button>
+            <button style={{ ...btnPrimary, width: 'auto' }} disabled={!receipt || sending} onClick={submitTopup}>{sending ? 'Enviando…' : 'Enviar solicitud'}</button>
+          </div>
+        </Overlay>
+      )}
+
+      {/* Mis solicitudes */}
+      {topups.length > 0 && (
+        <Section title="Mis recargas">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {topups.map(t => {
+              const st = ST_LABEL[t.status] ?? { t: t.status, c: C.textMuted };
+              return (
+                <div key={t.id} style={{ ...cardStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: 14 }}>
+                  <div><b>{t.credits} créditos</b> · US${t.amount_usd} <span style={{ color: C.textMuted, fontSize: 12 }}>· {new Date(t.created_at).toLocaleDateString()}</span></div>
+                  <span style={{ color: st.c, fontWeight: 700, fontSize: 13 }}>{st.t}</span>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
 
       {/* Planes */}
       <Section title="Planes">
@@ -123,6 +191,13 @@ const th: React.CSSProperties = { padding: '8px 10px', fontWeight: 600, fontSize
 const td: React.CSSProperties = { padding: '10px' };
 
 function Card({ children }: { children: any }) { return <div style={cardStyle}>{children}</div>; }
+function Overlay({ children, onClose }: { children: any; onClose: () => void }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: '#000a', display: 'grid', placeItems: 'center', zIndex: 50, padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.surface, border: `1px solid ${C.borderBright}`, borderRadius: 16, padding: 24, maxWidth: 420, width: '100%' }}>{children}</div>
+    </div>
+  );
+}
 function Section({ title, children }: { title: string; children: any }) {
   return (
     <section style={{ marginBottom: 30 }}>

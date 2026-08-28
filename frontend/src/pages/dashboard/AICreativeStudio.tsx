@@ -40,6 +40,7 @@ const LOADING_MSGS: Record<string, string[]> = {
   images:   ['🎨 Creando 3 creatividades', 'Componiendo imagen y luz', 'Casi listo…'],
   image:    ['🎨 Regenerando variante'],
   video:    ['🎬 Generando video con IA', 'Animando la creatividad', 'Esto puede tardar ~1 min…'],
+  ugc:      ['🎭 Eligiendo el creador ideal', '🎨 Generando la persona con el producto', '🎬 Grabando el UGC…'],
   copy:     ['✍️ Escribiendo el anuncio', 'Generando variantes de copy'],
 };
 
@@ -90,6 +91,9 @@ export default function AICreativeStudio() {
 
   const [costs, setCosts] = useState<Record<string, number>>(aiCreditsConfig);
   const [credits, setCredits] = useState<number>(0);
+  const [onboard, setOnboard] = useState(false);
+  useEffect(() => { try { if (!localStorage.getItem('cv_onboarded')) setOnboard(true); } catch { /* ignore */ } }, []);
+  const closeOnboard = () => { try { localStorage.setItem('cv_onboarded', '1'); } catch { /* ignore */ } setOnboard(false); };
 
   useEffect(() => {
     creativeApi.costs().then(r => { setCosts({ ...aiCreditsConfig, ...r.costs }); setCredits(r.credits); }).catch(() => {});
@@ -145,6 +149,13 @@ export default function AICreativeStudio() {
     patch({ videoUrl: r.videoUrl }); setCredits(r.credits);
   });
 
+  const genUGC = () => run('ugc', async () => {
+    const pick = await creativeApi.ugcAuto({ product: s.product });
+    const r = await creativeApi.ugc({ product: s.product, ...pick, duration: '10', referenceImage: s.imageBase64, format: s.format });
+    patch({ videoUrl: r.videoUrl, selectedImage: s.selectedImage ?? { key: 'ugc', label: 'UGC', description: r.creator?.name ?? '', prompt: '', url: r.imageUrl, model: '' } });
+    setCredits(r.credits);
+  });
+
   const genCopy = () => run('copy', async () => {
     const r = await creativeApi.copy({ product: s.product, objective: s.objective, style: s.strategy?.chosenStyle || s.style });
     patch({ copyVariants: r.variants, selectedCopy: r.variants[0] }); setCredits(r.credits);
@@ -187,7 +198,7 @@ export default function AICreativeStudio() {
                 {step === 2 && <StepObjetivo s={s} setObjective={(o: string) => patch({ objective: o })} onBack={() => goto(1)} onNext={() => goto(3)} />}
                 {step === 3 && <StepEstilo s={s} setStyle={(st: string) => patch({ style: st })} onBack={() => goto(2)} onNext={buildStrategyAndGo} />}
                 {step === 4 && <StepImagen s={s} costs={costs} setFormat={(f: Fmt) => patch({ format: f })} onGen={() => withConfirm(costs.imageVariantsSet, 'Generar 3 imágenes', genImages)} onRegen={(k: string) => withConfirm(costs.imageRegen, 'Regenerar imagen', () => regenImage(k))} onPick={(v: ImageVariant) => patch({ selectedImage: v })} onBack={() => goto(3)} onNext={() => goto(5)} />}
-                {step === 5 && <StepVideo s={s} costs={costs} onGen={(d: '5' | '10') => withConfirm(d === '10' ? costs.video10 : costs.video5, `Generar video ${d}s`, () => genVideo(d))} onBack={() => goto(4)} onNext={() => goto(6)} />}
+                {step === 5 && <StepVideo s={s} costs={costs} onGen={(d: '5' | '10') => withConfirm(d === '10' ? costs.video10 : costs.video5, `Generar video ${d}s`, () => genVideo(d))} onUGC={() => withConfirm(costs.ugc_video_10 ?? 10, 'Generar UGC (persona IA)', genUGC)} onBack={() => goto(4)} onNext={() => goto(6)} />}
                 {step === 6 && <StepCopy s={s} costs={costs} onGen={() => withConfirm(costs.copy, 'Generar copy', genCopy)} onPick={(c: CopyVariant) => patch({ selectedCopy: c })} onBack={() => goto(5)} onNext={() => { saveToHistory(); goto(7); }} />}
                 {step === 7 && <StepResultado s={s} onRegenImage={() => goto(4)} onRegenVideo={() => goto(5)} onRegenCopy={genCopy} onCampaign={() => nav('/dashboard/new-campaign')} onNew={reset} />}
               </>
@@ -205,6 +216,20 @@ export default function AICreativeStudio() {
             <Btn ghost onClick={() => setConfirm(null)}>Cancelar</Btn>
             <Btn onClick={confirm.run}>Generar</Btn>
           </div>
+        </Overlay>
+      )}
+
+      {onboard && (
+        <Overlay onClose={closeOnboard}>
+          <div style={{ fontSize: 30, marginBottom: 6 }}>👋</div>
+          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 20, marginBottom: 10 }}>Bienvenido al AI Creative Studio</div>
+          <ol style={{ color: C.textMuted, fontSize: 14, paddingLeft: 20, margin: '0 0 18px', lineHeight: 1.8 }}>
+            <li>Subí tu producto (foto y/o datos).</li>
+            <li>Elegí objetivo y estilo.</li>
+            <li>La IA genera imagen, video/UGC y copy.</li>
+            <li>Descargá o creá tu campaña.</li>
+          </ol>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}><Btn onClick={closeOnboard}>Empezar →</Btn></div>
         </Overlay>
       )}
 
@@ -390,10 +415,16 @@ function StepImagen({ s, setFormat, onGen, onRegen, onPick, onBack, onNext }: an
 }
 
 // ── PASO 5: Video ─────────────────────────────────────────────────────────────
-function StepVideo({ s, costs, onGen, onBack, onNext }: any) {
+function StepVideo({ s, costs, onGen, onUGC, onBack, onNext }: any) {
   const [dur, setDur] = useState<'5' | '10'>('5');
+  const [mode, setMode] = useState<'product' | 'ugc'>('product');
   return (
-    <StepShell title="Convertí la imagen en video" subtitle="La IA decide la animación según el tipo de producto. Podés saltar este paso.">
+    <StepShell title="Convertí la imagen en video" subtitle="Video de producto (anima tu imagen) o UGC con una persona IA usando tu producto. Podés saltar este paso.">
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18, background: C.surface, borderRadius: 12, padding: 4, border: `1px solid ${C.border}`, maxWidth: 380 }}>
+        {([['product', '🎬 Video de producto'], ['ugc', '🎭 UGC (persona IA)']] as const).map(([k, lbl]) => (
+          <button key={k} onClick={() => setMode(k)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: mode === k ? C.accent : 'transparent', color: mode === k ? '#fff' : C.textMuted }}>{lbl}</button>
+        ))}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,300px) 1fr', gap: 22 }} className="prod-grid">
         <div style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}`, background: C.surface2, aspectRatio: s.format === '1:1' ? '1' : s.format === '4:5' ? '4/5' : '9/16' }}>
           {s.videoUrl
@@ -401,16 +432,27 @@ function StepVideo({ s, costs, onGen, onBack, onNext }: any) {
             : s.selectedImage && <img src={s.selectedImage.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
         </div>
         <div>
-          <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>Duración</div>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
-            {(['5', '10'] as const).map(d => (
-              <button key={d} onClick={() => setDur(d)} style={{ flex: 1, padding: '12px', borderRadius: 10, cursor: 'pointer', background: dur === d ? C.accentDim : C.surface, border: `1.5px solid ${dur === d ? C.accent : C.border}`, color: C.text }}>
-                <b>{d}s</b> <span style={{ fontSize: 11, color: C.textMuted }}>· {d === '10' ? costs.video10 : costs.video5} créditos</span>
-              </button>
-            ))}
-          </div>
-          {dur === '10' && <Banner tone="amber">⚠️ El video de 10s consume más créditos.</Banner>}
-          <Btn style={{ marginTop: 14 }} onClick={() => onGen(dur)}>🎬 {s.videoUrl ? 'Regenerar' : 'Generar'} video</Btn>
+          {mode === 'product' ? (
+            <>
+              <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 8 }}>Duración</div>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 6 }}>
+                {(['5', '10'] as const).map(d => (
+                  <button key={d} onClick={() => setDur(d)} style={{ flex: 1, padding: '12px', borderRadius: 10, cursor: 'pointer', background: dur === d ? C.accentDim : C.surface, border: `1.5px solid ${dur === d ? C.accent : C.border}`, color: C.text }}>
+                    <b>{d}s</b> <span style={{ fontSize: 11, color: C.textMuted }}>· {d === '10' ? costs.video10 : costs.video5} créditos</span>
+                  </button>
+                ))}
+              </div>
+              {dur === '10' && <Banner tone="amber">⚠️ El video de 10s consume más créditos.</Banner>}
+              <Btn style={{ marginTop: 14 }} onClick={() => onGen(dur)} disabled={!s.selectedImage}>🎬 {s.videoUrl ? 'Regenerar' : 'Generar'} video</Btn>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 4 }}>UGC automático</div>
+              <p style={{ fontSize: 13, color: C.textMuted, marginTop: 0 }}>La IA elige un creador virtual, el escenario y el guion según tu producto, y graba un Reel de 10s (persona 100% sintética).</p>
+              <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 10 }}>Costo: <b style={{ color: C.accent }}>{costs.ugc_video_10 ?? 10} créditos</b></div>
+              <Btn onClick={onUGC}>🎭 {s.videoUrl ? 'Regenerar' : 'Generar'} UGC automático</Btn>
+            </>
+          )}
         </div>
       </div>
       <NavRow onBack={onBack} onNext={onNext} nextLabel={s.videoUrl ? 'Continuar →' : 'Saltar video →'} />
@@ -503,32 +545,51 @@ function StepResultado({ s, onRegenImage, onRegenVideo, onRegenCopy, onCampaign,
 // ── Historial ─────────────────────────────────────────────────────────────────
 function History() {
   const [items, setItems] = useState<any[] | null>(null);
+  const [filter, setFilter] = useState<'all' | 'image' | 'video' | 'fav'>('all');
   const load = () => creativeApi.list().then(setItems).catch(() => setItems([]));
   useEffect(() => { load(); }, []);
   const del = async (id: string) => { await creativeApi.remove(id).catch(() => {}); load(); };
+  const fav = async (id: string) => { await creativeApi.favorite(id).catch(() => {}); load(); };
   if (!items) return <div style={{ padding: 40 }}><Spinner size={24} /></div>;
-  if (!items.length) return <div style={{ padding: 60, textAlign: 'center', color: C.textMuted }}>Todavía no generaste creativos. Creá el primero desde el Studio.</div>;
+
+  const FILTERS: [typeof filter, string][] = [['all', 'Todos'], ['image', 'Imágenes'], ['video', 'Videos'], ['fav', 'Favoritos']];
+  const shown = items.filter(it => filter === 'all' ? true : filter === 'fav' ? it.is_favorite : filter === 'video' ? it.video_url : (it.output_url && !it.video_url));
+
   return (
     <div style={{ padding: '28px clamp(16px,3vw,40px)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16 }}>
-        {items.map(it => (
-          <div key={it.id} style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}`, background: C.surface }}>
-            <div style={{ aspectRatio: '3/4', background: C.surface2 }}>
-              {it.video_url ? <video src={it.video_url} muted loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : it.output_url ? <img src={it.output_url} alt={it.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: C.textDim }}>🎨</div>}
-            </div>
-            <div style={{ padding: 12 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
-              <div style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 8px' }}>{new Date(it.created_at).toLocaleDateString()} · {it.credits_used ?? 0} créditos</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {it.output_url && <a href={it.output_url} download target="_blank" rel="noreferrer" style={{ ...aBtn, padding: '6px 10px', fontSize: 12 }}>⬇</a>}
-                <Btn small ghost onClick={() => del(it.id)}>🗑️</Btn>
-              </div>
-            </div>
-          </div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+        {FILTERS.map(([k, lbl]) => (
+          <button key={k} onClick={() => setFilter(k)} style={{ padding: '7px 14px', borderRadius: 9, border: `1px solid ${filter === k ? C.accent : C.border}`, background: filter === k ? C.accentDim : 'transparent', color: filter === k ? C.text : C.textMuted, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{lbl}</button>
         ))}
       </div>
+      {shown.length === 0 ? (
+        <div style={{ padding: 60, textAlign: 'center', color: C.textMuted }}>
+          <div style={{ fontSize: 30, marginBottom: 8 }}>🖼️</div>
+          {items.length === 0 ? 'Tu biblioteca está vacía. Creá tu primera campaña y empezá a generar contenido.' : 'No hay creativos en este filtro.'}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16 }}>
+          {shown.map(it => (
+            <div key={it.id} style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}`, background: C.surface, position: 'relative' }}>
+              <button onClick={() => fav(it.id)} title="Favorito" style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: '#000a', border: 'none', borderRadius: 8, padding: '4px 7px', cursor: 'pointer', fontSize: 14 }}>{it.is_favorite ? '⭐' : '☆'}</button>
+              <div style={{ aspectRatio: '3/4', background: C.surface2 }}>
+                {it.video_url ? <video src={it.video_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : it.output_url ? <img src={it.output_url} alt={it.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: C.textDim }}>🎨</div>}
+              </div>
+              <div style={{ padding: 12 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
+                <div style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 8px' }}>{new Date(it.created_at).toLocaleDateString()} · {it.credits_used ?? 0} créditos</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {it.video_url && <a href={it.video_url} download target="_blank" rel="noreferrer" style={{ ...aBtn, padding: '6px 10px', fontSize: 12 }}>⬇ Video</a>}
+                  {it.output_url && !it.video_url && <a href={it.output_url} download target="_blank" rel="noreferrer" style={{ ...aBtn, padding: '6px 10px', fontSize: 12 }}>⬇</a>}
+                  <Btn small ghost onClick={() => del(it.id)}>🗑️</Btn>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

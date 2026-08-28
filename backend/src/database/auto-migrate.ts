@@ -21,6 +21,7 @@ async function ensureNewTables(pool: Pool): Promise<void> {
   await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS video_url TEXT`);
   await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS studio JSONB NOT NULL DEFAULT '{}'`);
   await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS credits_used INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE creatives ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT false`);
 
   // Ledger de créditos (reserva/consumo/refund) con idempotencia
   await pool.query(`
@@ -55,6 +56,20 @@ async function ensureNewTables(pool: Pool): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_ai_gen_user ON ai_generations(user_id, created_at DESC);
+  `);
+
+  // Recargas de créditos por transferencia (el CEO aprueba)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS credit_purchases (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      pack_key VARCHAR(40) NOT NULL, credits INTEGER NOT NULL, amount_usd NUMERIC(10,2) NOT NULL,
+      receipt_url TEXT, status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      reviewed_by UUID, reviewed_at TIMESTAMPTZ, note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_credit_purchases_status ON credit_purchases(status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_credit_purchases_user ON credit_purchases(user_id, created_at DESC);
   `);
 
   // CEO / admin owner — idempotent, kept in sync on every boot

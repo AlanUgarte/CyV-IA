@@ -20,6 +20,14 @@ export class PaymentsController {
     return this.paymentsService.createCheckoutSession(req.user.id, dto.plan);
   }
 
+  @Post('checkout/pack')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Comprar un pack de créditos (pago único)' })
+  createPackCheckout(@Request() req: any, @Body() body: { packKey: string }) {
+    return this.paymentsService.createPackCheckout(req.user.id, body.packKey);
+  }
+
   @Post('portal')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

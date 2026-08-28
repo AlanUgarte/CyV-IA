@@ -8,6 +8,9 @@ export const PLANS: Plan[] = [
   { key: 'business', name: 'Business', priceUsd: 79, monthlyCredits: 600, features: ['600 créditos/mes', 'Todo lo de Pro', 'Prioridad de generación'] },
 ];
 
+// Pago por transferencia bancaria (el CEO aprueba manualmente)
+export const PAYMENT_ALIAS = process.env.PAYMENT_ALIAS ?? 'Alan.ugarte7';
+
 export const CREDIT_PACKS: CreditPack[] = [
   { key: 'pack_50',   credits: 50,   priceUsd: 9 },
   { key: 'pack_150',  credits: 150,  priceUsd: 25 },

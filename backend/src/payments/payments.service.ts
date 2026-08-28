@@ -7,6 +7,8 @@ import { Pool } from 'pg';
 import Stripe from 'stripe';
 import { DATABASE_POOL } from '../database/database.module';
 import { EmailService } from '../common/services/email.service';
+import { CreditsService } from '../credits/credits.service';
+import { CREDIT_PACKS } from '../config/plans.config';
 
 @Injectable()
 export class PaymentsService {
@@ -17,6 +19,7 @@ export class PaymentsService {
     @Inject(DATABASE_POOL) private readonly db: Pool,
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
+    private readonly credits: CreditsService,
   ) {
     this.stripe = new Stripe(this.config.get<string>('stripe.secretKey')!, {
       apiVersion: '2023-10-16',
@@ -73,6 +76,31 @@ export class PaymentsService {
     return { url: session.url, sessionId: session.id };
   }
 
+  // ── Checkout de PACK de créditos (pago único) ──────────────────────────────
+  async createPackCheckout(userId: string, packKey: string) {
+    const pack = CREDIT_PACKS.find(p => p.key === packKey);
+    if (!pack) throw new BadRequestException('Pack inválido');
+    const { rows } = await this.db.query('SELECT email, full_name FROM users WHERE id = $1', [userId]);
+    if (!rows.length) throw new NotFoundException('Usuario no encontrado');
+
+    let customerId = await this.getStripeCustomerId(userId);
+    if (!customerId) {
+      const customer = await this.stripe.customers.create({ email: rows[0].email, name: rows[0].full_name, metadata: { userId } });
+      customerId = customer.id;
+    }
+    const frontendUrl = this.config.get<string>('frontendUrl');
+    const session = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: pack.priceUsd * 100, product_data: { name: `${pack.credits} créditos Conversia AI` } } }],
+      success_url: `${frontendUrl}/dashboard/credits?purchase=ok`,
+      cancel_url: `${frontendUrl}/dashboard/credits`,
+      metadata: { userId, packKey: pack.key, credits: String(pack.credits) },
+    });
+    return { url: session.url, sessionId: session.id };
+  }
+
   // ── Create Customer Portal ────────────────────────────────────────────────
 
   async createPortalSession(userId: string) {
@@ -123,8 +151,15 @@ export class PaymentsService {
   }
 
   private async handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-    const { userId, planName } = session.metadata!;
+    const { userId, planName, packKey, credits } = session.metadata!;
     if (!userId) return;
+
+    // Compra de pack de créditos (pago único) → acreditar
+    if (packKey) {
+      await this.credits.grant(userId, Number(credits), 'purchase', { packKey, session: session.id });
+      this.logger.log(`Pack ${packKey} (${credits} créditos) acreditado a ${userId}`);
+      return;
+    }
 
     const planResult = await this.db.query(
       'SELECT id FROM plans WHERE name = $1',

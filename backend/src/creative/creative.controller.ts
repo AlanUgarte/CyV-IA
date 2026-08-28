@@ -6,6 +6,7 @@ import { CreditsService } from '../credits/credits.service';
 import { CostTrackingService } from '../credits/cost-tracking.service';
 import { CREDIT_COSTS, estimateProviderCost, CreditOperation } from '../config/credits.config';
 import { PROVIDERS } from '../config/providers.config';
+import { CREATOR_PRESETS } from './creators.config';
 import { Fmt } from './openai.service';
 
 @ApiTags('creative')
@@ -94,6 +95,26 @@ export class CreativeController {
   async copy(@Body() body: { product: ProductInfo; objective: string; style: string }) {
     return { variants: await this.svc.generateCopy(body) };
   }
+
+  // ── UGC (persona IA) ─────────────────────────────────────────────────────────
+  @Get('creators')
+  creators() { return { creators: CREATOR_PRESETS }; }
+
+  // Auto-selección de creator/escena/guion (gratis)
+  @Post('ugc-auto') @HttpCode(HttpStatus.OK)
+  async ugcAuto(@Body() body: { product: ProductInfo }) { return this.svc.pickUGC(body.product); }
+
+  // Genera UGC (imagen persona sintética + video). Cuesta ugc_video_10.
+  @Post('ugc') @HttpCode(HttpStatus.OK)
+  async ugc(@Body() body: any, @Request() req: any) {
+    const { result, credits, creditsUsed } = await this.billed(req,
+      { operation: 'ugc_video_10', amount: CREDIT_COSTS.ugc_video_10, provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds: 10 },
+      () => this.svc.generateUGC(body));
+    return { ...(result as any), credits, creditsUsed };
+  }
+
+  @Post(':id/favorite') @HttpCode(HttpStatus.OK)
+  async favorite(@Param('id') id: string, @Request() req: any) { return this.svc.toggleFavorite(id, req.user.id); }
 
   // HISTORIAL
   @Post() @HttpCode(HttpStatus.CREATED)

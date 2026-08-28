@@ -1,6 +1,8 @@
 import { Injectable, Inject, Logger, BadRequestException } from '@nestjs/common';
 import { Pool } from 'pg';
 import { DATABASE_POOL } from '../database/database.module';
+import { StorageService } from '../uploads/storage.service';
+import { CREDIT_PACKS } from '../config/plans.config';
 
 export type TxType = 'subscription_grant' | 'purchase' | 'generation' | 'refund' | 'manual_adjustment' | 'expiration';
 
@@ -14,7 +16,10 @@ export interface ReserveInput {
 @Injectable()
 export class CreditsService {
   private readonly logger = new Logger(CreditsService.name);
-  constructor(@Inject(DATABASE_POOL) private readonly db: Pool) {}
+  constructor(
+    @Inject(DATABASE_POOL) private readonly db: Pool,
+    private readonly storage: StorageService,
+  ) {}
 
   async balance(userId: string): Promise<number> {
     const { rows } = await this.db.query('SELECT ai_credits FROM users WHERE id = $1', [userId]);
@@ -126,5 +131,58 @@ export class CreditsService {
        FROM credit_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
       [userId, limit]);
     return rows;
+  }
+
+  // ── Recargas por transferencia (el CEO aprueba) ─────────────────────────────
+  async createTopup(userId: string, packKey: string, receiptBase64?: string) {
+    const pack = CREDIT_PACKS.find(p => p.key === packKey);
+    if (!pack) throw new BadRequestException('Pack inválido');
+    let receiptUrl: string | null = null;
+    if (receiptBase64) {
+      const m = receiptBase64.match(/^data:(.+?);base64,(.*)$/);
+      if (m) {
+        const ext = m[1].includes('pdf') ? 'pdf' : m[1].includes('png') ? 'png' : 'jpg';
+        const saved = await this.storage.save(Buffer.from(m[2], 'base64'), `receipt_${Date.now()}.${ext}`, m[1]);
+        receiptUrl = saved.url;
+      }
+    }
+    const { rows } = await this.db.query(
+      `INSERT INTO credit_purchases (user_id, pack_key, credits, amount_usd, receipt_url, status)
+       VALUES ($1,$2,$3,$4,$5,'pending') RETURNING *`,
+      [userId, pack.key, pack.credits, pack.priceUsd, receiptUrl]);
+    return rows[0];
+  }
+
+  async listUserTopups(userId: string) {
+    const { rows } = await this.db.query(
+      `SELECT id, pack_key, credits, amount_usd, receipt_url, status, created_at
+       FROM credit_purchases WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`, [userId]);
+    return rows;
+  }
+
+  async listPendingTopups() {
+    const { rows } = await this.db.query(
+      `SELECT cp.*, u.email, u.full_name
+       FROM credit_purchases cp JOIN users u ON u.id = cp.user_id
+       WHERE cp.status = 'pending' ORDER BY cp.created_at ASC`);
+    return rows;
+  }
+
+  // Aprobar: acredita créditos y marca la solicitud (idempotente: solo si pending)
+  async approveTopup(id: string, adminId: string) {
+    const { rows } = await this.db.query(
+      `UPDATE credit_purchases SET status='approved', reviewed_by=$2, reviewed_at=NOW()
+       WHERE id=$1 AND status='pending' RETURNING user_id, credits, pack_key`, [id, adminId]);
+    if (!rows.length) throw new BadRequestException('Solicitud no encontrada o ya procesada');
+    const after = await this.grant(rows[0].user_id, rows[0].credits, 'purchase', { topup: id, pack: rows[0].pack_key, approvedBy: adminId });
+    return { ok: true, credited: rows[0].credits, balance: after };
+  }
+
+  async rejectTopup(id: string, adminId: string, note?: string) {
+    const { rows } = await this.db.query(
+      `UPDATE credit_purchases SET status='rejected', reviewed_by=$2, reviewed_at=NOW(), note=$3
+       WHERE id=$1 AND status='pending' RETURNING id`, [id, adminId, note ?? null]);
+    if (!rows.length) throw new BadRequestException('Solicitud no encontrada o ya procesada');
+    return { ok: true };
   }
 }

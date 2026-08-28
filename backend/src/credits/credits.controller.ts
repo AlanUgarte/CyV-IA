@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Body, Request, UseGuards, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Request, UseGuards, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreditsService } from './credits.service';
 import { CostTrackingService } from './cost-tracking.service';
 import { CREDIT_COSTS, CREDIT_VALUE_USD, estimateProviderCost, CreditOperation } from '../config/credits.config';
-import { PLANS, CREDIT_PACKS } from '../config/plans.config';
+import { PLANS, CREDIT_PACKS, PAYMENT_ALIAS } from '../config/plans.config';
 
 @ApiTags('credits')
 @ApiBearerAuth()
@@ -23,7 +23,35 @@ export class CreditsController {
   plans() { return { plans: PLANS }; }
 
   @Get('packs')
-  packs() { return { packs: CREDIT_PACKS }; }
+  packs() { return { packs: CREDIT_PACKS, alias: PAYMENT_ALIAS }; }
+
+  // ── Recargas por transferencia (usuario) ────────────────────────────────────
+  @Post('topup') @HttpCode(HttpStatus.OK)
+  async topup(@Body() body: { packKey: string; receiptBase64?: string }, @Request() req: any) {
+    return this.credits.createTopup(req.user.id, body.packKey, body.receiptBase64);
+  }
+
+  @Get('topups')
+  async myTopups(@Request() req: any) { return { topups: await this.credits.listUserTopups(req.user.id) }; }
+
+  // ── Aprobación de recargas (CEO / admin) ────────────────────────────────────
+  @Get('admin/topups')
+  async pendingTopups(@Request() req: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException();
+    return { topups: await this.credits.listPendingTopups() };
+  }
+
+  @Post('admin/topups/:id/approve') @HttpCode(HttpStatus.OK)
+  async approveTopup(@Param('id') id: string, @Request() req: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException();
+    return this.credits.approveTopup(id, req.user.id);
+  }
+
+  @Post('admin/topups/:id/reject') @HttpCode(HttpStatus.OK)
+  async rejectTopup(@Param('id') id: string, @Body() body: { note?: string }, @Request() req: any) {
+    if (req.user.role !== 'admin') throw new ForbiddenException();
+    return this.credits.rejectTopup(id, req.user.id, body.note);
+  }
 
   // Costos en créditos que ve el usuario (NO el costo real del proveedor)
   @Get('costs')
