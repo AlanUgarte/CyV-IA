@@ -138,10 +138,10 @@ export default function Credits() {
             {receipt ? <span style={{ color: C.green, fontSize: 13 }}>✓ Comprobante cargado</span> : <span style={{ color: C.textMuted, fontSize: 13 }}>📎 Subir comprobante (imagen o PDF)</span>}
           </div>
           <input ref={fileRef} type="file" accept="image/*,application/pdf" hidden onChange={async e => e.target.files?.[0] && setReceipt(await toBase64(e.target.files[0]))} />
-          <a href={waLink(sel)} target="_blank" rel="noreferrer" style={{ display: 'block', textAlign: 'center', background: '#25D366', color: '#04140d', fontWeight: 700, fontSize: 13, padding: '10px', borderRadius: 10, textDecoration: 'none', marginBottom: 10 }}>📲 Enviar comprobante por WhatsApp</a>
+          <p style={{ fontSize: 11, color: C.textDim, margin: '0 0 12px' }}>Al enviar, se registra tu solicitud con el comprobante y se avisa por WhatsApp. El equipo verifica y acredita tus créditos.</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button style={{ ...btnPrimary, width: 'auto', background: 'transparent', color: C.text, border: `1px solid ${C.border}` }} onClick={() => setSel(null)}>Cancelar</button>
-            <button style={{ ...btnPrimary, width: 'auto' }} disabled={!receipt || sending} onClick={submitTopup}>{sending ? 'Enviando…' : 'Registrar solicitud'}</button>
+            <button style={{ ...btnPrimary, width: 'auto' }} disabled={!receipt || sending} onClick={submitTopup}>{sending ? 'Enviando…' : 'Enviar solicitud'}</button>
           </div>
         </Overlay>
       )}

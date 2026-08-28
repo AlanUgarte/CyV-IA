@@ -109,3 +109,9 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* AI Creative Studio — responsive (evita overflow horizontal en mobile) */
+@media (max-width: 820px) {
+  .prod-grid { grid-template-columns: 1fr !important; }
+  .studio-rail { display: none !important; }
+}
