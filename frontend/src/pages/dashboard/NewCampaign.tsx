@@ -99,8 +99,8 @@ export default function NewCampaign() {
             ? editProductImage(photoUrl2, product, style, cfg.fmt, hook, description)
             : generateProductImage(product, style, cfg.fmt, hook, description)
           ).catch((err: any) => {
-            const msg = err?.message ?? String(err);
-            setFluxError(msg);
+            const msg = err?.response?.data?.message ?? err?.message ?? String(err);
+            setFluxError(`Usando plantilla — IA sin configurar. (${String(msg).slice(0, 90)})`);
             return generateCreativeImage({ hook, product, format: cfg.fmt, style, avatarEmoji: cfg.emoji, gradientFrom: cfg.from, gradientTo: cfg.to });
           })
         )

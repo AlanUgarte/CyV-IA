@@ -136,8 +136,8 @@ function CreativeStudio({ onAttach, setCreatives }: { onAttach: (c: Creative) =>
     try {
       imageUrl = await generateProductImage(product, tpl.name, fmt, activeHook || undefined);
     } catch (err: any) {
-      const msg = err?.message ?? String(err);
-      setGenError(`IA: ${msg.slice(0, 120)}`);
+      const backendMsg = err?.response?.data?.message ?? err?.message ?? String(err);
+      setGenError(`Usando plantilla — IA sin configurar. (${String(backendMsg).slice(0, 90)})`);
       imageUrl = await generateCreativeImage({
         hook: activeHook || product,
         product,

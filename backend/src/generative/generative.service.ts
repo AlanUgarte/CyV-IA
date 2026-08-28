@@ -89,7 +89,14 @@ export class GenerativeService {
   // leaks the key into the browser bundle. This keeps it on the server.
   async generateOpenAIImage(product: string, style: string, format: Format = '9:16', hook?: string, description?: string, promptOverride?: string): Promise<string> {
     const key = this.config.get<string>('openai.apiKey') ?? '';
-    if (!key) throw new Error('OPENAI_API_KEY no configurado. Agregalo en Railway → Variables.');
+    if (!key) {
+      // Sin OpenAI: caemos a HuggingFace/FLUX (tier gratis) si hay token; si no, error claro.
+      if (this.enabled) {
+        this.logger.log('[OpenAI] sin key — usando HuggingFace/FLUX');
+        return this.generateImage(product, style, format, hook);
+      }
+      throw new Error('Sin proveedor de imágenes: configurá OPENAI_API_KEY (o HUGGINGFACE_API_KEY gratis) en Railway.');
+    }
 
     const size: Record<Format, string> = { '9:16': '1024x1536', '4:5': '1024x1536', '1:1': '1024x1024' };
     const descPart = description ? `, ${description}` : '';
