@@ -32,7 +32,6 @@ const Creatives       = lazyLoad(() => import('../pages/dashboard/Creatives'));
 const Reports         = lazyLoad(() => import('../pages/dashboard/Reports'));
 const Integrations    = lazyLoad(() => import('../pages/dashboard/Integrations'));
 const Billing         = lazyLoad(() => import('../pages/dashboard/Billing'));
-const ConversiaIA     = lazyLoad(() => import('../pages/dashboard/ConversiaIA'));
 const Profile         = lazyLoad(() => import('../pages/dashboard/Profile'));
 
 const AdminShell      = lazyLoad(() => import('../pages/admin/AdminShell'));
@@ -41,7 +40,6 @@ const AdminUsers      = lazyLoad(() => import('../pages/admin/AdminUsers'));
 const AdminRoles      = lazyLoad(() => import('../pages/admin/AdminRoles'));
 const AdminBilling    = lazyLoad(() => import('../pages/admin/AdminBilling'));
 const AdminFlags      = lazyLoad(() => import('../pages/admin/AdminFlags'));
-const AdminAITraining = lazyLoad(() => import('../pages/admin/AdminAITraining'));
 const AdminAudit      = lazyLoad(() => import('../pages/admin/AdminAudit'));
 const AdminComms      = lazyLoad(() => import('../pages/admin/AdminComms'));
 const AdminSystem     = lazyLoad(() => import('../pages/admin/AdminSystem'));
@@ -124,7 +122,6 @@ export const router = createBrowserRouter([
       { path: 'campaigns',   element: <ErrorBoundary><S><Campaigns /></S></ErrorBoundary> },
       { path: 'new-campaign',element: <ErrorBoundary><S><NewCampaign /></S></ErrorBoundary> },
       { path: 'creatives',   element: <ErrorBoundary><S><Creatives /></S></ErrorBoundary> },
-      { path: 'conversia-ia',element: <ErrorBoundary><S><ConversiaIA /></S></ErrorBoundary> },
       { path: 'reports',     element: <ErrorBoundary><S><Reports /></S></ErrorBoundary> },
       { path: 'integrations',element: <ErrorBoundary><S><Integrations /></S></ErrorBoundary> },
       { path: 'billing',     element: <ErrorBoundary><S><Billing /></S></ErrorBoundary> },
@@ -141,7 +138,6 @@ export const router = createBrowserRouter([
       { path: 'roles',        element: <ErrorBoundary><S><AdminRoles /></S></ErrorBoundary> },
       { path: 'billing',      element: <ErrorBoundary><S><AdminBilling /></S></ErrorBoundary> },
       { path: 'flags',        element: <ErrorBoundary><S><AdminFlags /></S></ErrorBoundary> },
-      { path: 'ai-training',  element: <ErrorBoundary><S><AdminAITraining /></S></ErrorBoundary> },
       { path: 'audit',        element: <ErrorBoundary><S><AdminAudit /></S></ErrorBoundary> },
       { path: 'comms',        element: <ErrorBoundary><S><AdminComms /></S></ErrorBoundary> },
       { path: 'system',       element: <ErrorBoundary><S><AdminSystem /></S></ErrorBoundary> },

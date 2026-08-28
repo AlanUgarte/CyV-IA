@@ -332,31 +332,6 @@ CREATE TABLE system_settings (
   updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- ─── AI TRAINING PATTERNS ────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS ai_patterns (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      UUID REFERENCES users(id) ON DELETE CASCADE,
-  source       VARCHAR(255) DEFAULT 'Manual',
-  type         VARCHAR(20) DEFAULT 'video',
-  hook         TEXT NOT NULL,
-  style        TEXT,
-  platform     VARCHAR(50) DEFAULT 'reels',
-  tone         TEXT,
-  visual_notes TEXT,
-  cta          TEXT,
-  audience     TEXT,
-  score        INTEGER DEFAULT 80,
-  active       BOOLEAN DEFAULT TRUE,
-  uses         INTEGER DEFAULT 0,
-  created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ai_patterns_user ON ai_patterns(user_id);
-CREATE INDEX IF NOT EXISTS idx_ai_patterns_platform ON ai_patterns(platform);
-CREATE INDEX IF NOT EXISTS idx_ai_patterns_score ON ai_patterns(score DESC);
-
 -- ─── TRIGGERS: updated_at ─────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION set_updated_at()

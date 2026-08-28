@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, Megaphone, Sparkles, Wand2, Brain,
+  LayoutDashboard, Megaphone, Sparkles, Wand2,
   BarChart3, Plug, CreditCard, User, Settings,
   LogOut, Bell, Search, Plus, X, ChevronLeft,
   Zap, TrendingUp,
@@ -14,7 +14,6 @@ const NAV_MAIN = [
   { path: '/dashboard/campaigns',    label: 'Campañas',      icon: Megaphone },
   { path: '/dashboard/new-campaign', label: 'Nueva campaña', icon: Sparkles },
   { path: '/dashboard/creatives',    label: 'Creativos IA',  icon: Wand2 },
-  { path: '/dashboard/conversia-ia', label: 'Conversia IA',  icon: Brain, highlight: true },
   { path: '/dashboard/reports',      label: 'Reportes',      icon: BarChart3 },
   { path: '/dashboard/integrations', label: 'Integraciones', icon: Plug },
 ];
@@ -29,7 +28,6 @@ const BOTTOM_NAV = [
   { path: '/dashboard/campaigns',    label: 'Campañas',  icon: Megaphone },
   { path: '/dashboard/new-campaign', label: 'Crear',     icon: Sparkles },
   { path: '/dashboard/creatives',    label: 'Creativos', icon: Wand2 },
-  { path: '/dashboard/conversia-ia', label: 'IA',        icon: Brain },
 ];
 
 const SIDEBAR_W  = 232;

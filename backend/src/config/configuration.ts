@@ -72,6 +72,12 @@ export default () => ({
     apiKey: process.env.OPENAI_API_KEY ?? '',
   },
 
+  magnific: {
+    apiKey: process.env.MAGNIFIC_API_KEY ?? '',
+    videoModel: process.env.MAGNIFIC_VIDEO_MODEL ?? 'kling-v2', // Kling image-to-video
+    videoDuration: process.env.MAGNIFIC_VIDEO_DURATION ?? '5',  // "5" | "10" seconds
+  },
+
   r2: {
     accountId: process.env.R2_ACCOUNT_ID ?? '',
     accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',

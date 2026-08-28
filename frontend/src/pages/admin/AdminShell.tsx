@@ -10,7 +10,6 @@ const NAV_ITEMS = [
   { path: '/admin/roles', label: 'Roles & Permisos', icon: '🔐' },
   { path: '/admin/billing', label: 'Facturación', icon: '💰' },
   { path: '/admin/flags', label: 'Feature Flags', icon: '🚩' },
-  { path: '/admin/ai-training', label: 'Entrenar IA', icon: '🧠' },
   { path: '/admin/audit', label: 'Audit Log', icon: '📋' },
   { path: '/admin/comms', label: 'Comunicaciones', icon: '📢' },
   { path: '/admin/system', label: 'Sistema', icon: '⚙️' },
