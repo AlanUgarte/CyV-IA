@@ -16,33 +16,85 @@ import { campaignsApi, type CampaignRow, type DashboardSummary, normalizeCtr, no
 import { aiApi } from '../../api/ai';
 import { creativeApi } from '../../api/creative';
 
-function AICreativeBanner({ navigate }: { navigate: (p: string) => void }) {
-  const [st, setSt] = useState<{ creatives: number; images: number; videos: number; credits_used: number; this_month: number } | null>(null);
-  useEffect(() => { creativeApi.stats().then(setSt).catch(() => {}); }, []);
-  const stat = (label: string, value: number | string) => (
-    <div style={{ minWidth: 90 }}>
-      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 22, color: '#fff' }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.7)' }}>{label}</div>
+function HomeHero({ navigate }: { navigate: (p: string) => void }) {
+  return (
+    <div style={{ background: 'linear-gradient(120deg,#7c5cfc,#5b3ff0 55%,#4da6ff)', borderRadius: 20, padding: 'clamp(24px,4vw,40px)', marginBottom: 22, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 620 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.85)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Conversia Studio</div>
+        <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(26px,4vw,40px)', color: '#fff', lineHeight: 1.05, margin: '0 0 12px' }}>Creá anuncios que venden, con IA</h1>
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,.85)', margin: '0 0 20px', lineHeight: 1.5 }}>Subí tu producto y obtené una campaña completa: imágenes, video UGC, copy y formatos para Meta. En minutos, sin diseñador.</p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button onClick={() => navigate('/dashboard/creatives')} style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>+ Crear campaña</button>
+          <button onClick={() => navigate('/dashboard/projects')} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: '1px solid rgba(255,255,255,.35)', borderRadius: 12, padding: '12px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Mis proyectos</button>
+        </div>
+      </div>
+      {/* thumbnails decorativos (formas propias, sin contenido de terceros) */}
+      <div style={{ position: 'absolute', right: -20, top: 0, bottom: 0, display: 'flex', gap: 10, alignItems: 'center', opacity: 0.9 }} className="hero-thumbs">
+        {['#ffffff22', '#ffffff30', '#ffffff22', '#ffffff30'].map((bg, i) => (
+          <div key={i} style={{ width: 90, height: 150, borderRadius: 12, background: bg, transform: `translateY(${i % 2 ? 14 : -14}px)`, border: '1px solid rgba(255,255,255,.25)' }} />
+        ))}
+      </div>
     </div>
   );
+}
+
+const TOOLS = [
+  { emoji: '🎬', name: 'Campaña UGC', desc: 'Video con persona IA usando tu producto', to: '/dashboard/creatives' },
+  { emoji: '🖼️', name: 'Anuncio de imagen', desc: 'Convertí tu producto en creativos publicitarios', to: '/dashboard/creatives' },
+  { emoji: '🎥', name: 'Video de producto', desc: 'Animá tu imagen en un reel', to: '/dashboard/creatives' },
+  { emoji: '🧑‍🎤', name: 'Avatares', desc: 'Elegí o subí tu creador virtual', to: '/dashboard/brand' },
+  { emoji: '✍️', name: 'Copy publicitario', desc: 'Hooks, títulos, descripciones y CTA', to: '/dashboard/creatives' },
+  { emoji: '🎨', name: 'Mi marca', desc: 'Productos, voces y kit de marca', to: '/dashboard/brand' },
+  { emoji: '🗂️', name: 'Proyectos', desc: 'Tus campañas guardadas', to: '/dashboard/projects' },
+  { emoji: '📊', name: 'Reportes', desc: 'Rendimiento de tus campañas', to: '/dashboard/reports' },
+];
+
+function HomeTools({ navigate }: { navigate: (p: string) => void }) {
   return (
-    <div style={{ background: 'linear-gradient(120deg,#7c5cfc,#4da6ff)', borderRadius: 18, padding: '22px 24px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 18 }}>
-      <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.8)', letterSpacing: 1, textTransform: 'uppercase' }}>AI Creative Studio</div>
-        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 24, color: '#fff', margin: '4px 0 2px' }}>Creá una publicidad completa con IA</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)' }}>Producto → imagen → video → copy, en minutos.</div>
+    <div style={{ marginBottom: 26 }}>
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Herramientas</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
+        {TOOLS.map(t => (
+          <button key={t.name} onClick={() => navigate(t.to)} style={{ textAlign: 'left', display: 'flex', gap: 12, alignItems: 'center', padding: 16, borderRadius: 14, cursor: 'pointer', background: '#0f0f1a', border: '1px solid #1c1c2e' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 11, background: '#16162a', display: 'grid', placeItems: 'center', fontSize: 20, flexShrink: 0 }}>{t.emoji}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#e8e8f4' }}>{t.name}</div>
+              <div style={{ fontSize: 12, color: '#666688', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.desc}</div>
+            </div>
+          </button>
+        ))}
       </div>
-      <div style={{ display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap' }}>
-        {st && (
-          <div style={{ display: 'flex', gap: 22 }}>
-            {stat('Creativos', st.creatives)}
-            {stat('Imágenes', st.images)}
-            {stat('Videos', st.videos)}
-            {stat('Este mes', st.this_month)}
-          </div>
-        )}
-        <button onClick={() => navigate('/dashboard/creatives')} style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 12, padding: '12px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Crear nuevo creativo</button>
+    </div>
+  );
+}
+
+function HomeGallery({ navigate }: { navigate: (p: string) => void }) {
+  const [items, setItems] = useState<any[] | null>(null);
+  useEffect(() => { creativeApi.list().then(setItems).catch(() => setItems([])); }, []);
+  return (
+    <div style={{ marginBottom: 26 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17 }}>Tus creativos</div>
+        <button onClick={() => navigate('/dashboard/creatives')} style={{ background: 'transparent', border: '1px solid #1c1c2e', color: '#e8e8f4', borderRadius: 9, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Ver todos</button>
       </div>
+      {items && items.length === 0 ? (
+        <div style={{ padding: 40, textAlign: 'center', color: '#666688', border: '1.5px dashed #1c1c2e', borderRadius: 14, background: '#0f0f1a' }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
+          Todavía no generaste creativos. <button onClick={() => navigate('/dashboard/creatives')} style={{ background: 'none', border: 'none', color: '#7c5cfc', cursor: 'pointer', fontWeight: 600 }}>Creá el primero</button>.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
+          {(items ?? []).slice(0, 12).map(it => (
+            <div key={it.id} onClick={() => navigate('/dashboard/creatives')} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #1c1c2e', background: '#0f0f1a', cursor: 'pointer' }}>
+              <div style={{ aspectRatio: '3/4', background: '#16162a' }}>
+                {it.video_url ? <video src={it.video_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : it.output_url ? <img src={it.output_url} alt={it.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#333355' }}>🎨</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -222,30 +274,14 @@ export default function DashOverview() {
   return (
     <div className="content">
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <motion.div {...fadeUp(0)} className="flex items-end justify-between mb-6 flex-wrap gap-3">
-        <div>
-          <h2 className="font-syne font-extrabold text-[22px] text-text leading-tight mb-1">
-            {greeting()}, {firstName} 👋
-          </h2>
-          <p className="text-[13px] text-muted">
-            {loading
-              ? 'Cargando métricas...'
-              : `${activeCount} campañas activas · ${leadsToday > 0 ? `${leadsToday} leads hoy` : 'Sin leads hoy'}`}
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/dashboard/new-campaign')}
-          className="btn btn-p flex items-center gap-2"
-          style={{ fontSize: 13 }}
-        >
-          <Sparkles size={14} />
-          Nueva campaña
-        </button>
-      </motion.div>
+      {/* ── Home: hero + herramientas + galería ─────────────────────────────── */}
+      <div style={{ fontSize: 13, color: '#666688', marginBottom: 14 }}>{greeting()}, {firstName} 👋</div>
+      <HomeHero navigate={navigate} />
+      <HomeTools navigate={navigate} />
+      <HomeGallery navigate={navigate} />
 
-      {/* ── AI Creative Studio ──────────────────────────────────────────────── */}
-      <AICreativeBanner navigate={navigate} />
+      {/* ── Resumen (métricas) ──────────────────────────────────────────────── */}
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Resumen</div>
 
       {/* ── KPI cards ───────────────────────────────────────────────────────── */}
       <div className="g4 mb-5">
