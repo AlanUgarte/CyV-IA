@@ -254,27 +254,93 @@ export default function AICreativeStudio() {
 }
 
 // ── Launcher (inicio de la sección) ──────────────────────────────────────────
+function ModePreview({ kind }: { kind: 'nodes' | 'wizard' | 'library' }) {
+  if (kind === 'nodes') return (
+    <svg viewBox="0 0 260 120" style={{ width: '100%', height: '100%' }}>
+      <defs><linearGradient id="mn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#8b6bff" /><stop offset="1" stopColor="#4a2fd0" /></linearGradient></defs>
+      <path d="M58 60 C 95 60, 95 34, 132 34" stroke="#ffffff55" fill="none" strokeWidth="2" />
+      <path d="M58 60 C 95 60, 95 86, 132 86" stroke="#ffffff55" fill="none" strokeWidth="2" />
+      <path d="M188 34 C 210 34, 210 60, 232 60" stroke="#ffffff55" fill="none" strokeWidth="2" />
+      <path d="M188 86 C 210 86, 210 60, 232 60" stroke="#ffffff55" fill="none" strokeWidth="2" />
+      <rect x="20" y="46" width="38" height="28" rx="7" fill="#ffffffcc" />
+      <rect x="132" y="20" width="56" height="28" rx="7" fill="#ffffffee" />
+      <rect x="132" y="72" width="56" height="28" rx="7" fill="#ffffffcc" />
+      <rect x="220" y="46" width="24" height="28" rx="7" fill="url(#mn)" stroke="#fff" strokeWidth="1.5" />
+    </svg>
+  );
+  if (kind === 'wizard') return (
+    <svg viewBox="0 0 260 120" style={{ width: '100%', height: '100%' }}>
+      {[0, 1, 2, 3].map(i => (<g key={i}><circle cx={40 + i * 60} cy={40} r="14" fill={i === 0 ? '#fff' : '#ffffff55'} /><text x={40 + i * 60} y={45} textAnchor="middle" fontSize="13" fontWeight="700" fill={i === 0 ? '#2b6fd0' : '#fff'}>{i + 1}</text>{i < 3 && <line x1={54 + i * 60} y1={40} x2={86 + i * 60} y2={40} stroke="#ffffff55" strokeWidth="2" />}</g>))}
+      <rect x="26" y="72" width="208" height="12" rx="6" fill="#ffffff33" /><rect x="26" y="72" width="70" height="12" rx="6" fill="#fff" />
+      <rect x="26" y="92" width="150" height="10" rx="5" fill="#ffffff22" />
+    </svg>
+  );
+  return (
+    <svg viewBox="0 0 260 120" style={{ width: '100%', height: '100%' }}>
+      {[0, 1, 2, 3, 4].map(i => <rect key={i} x={18 + i * 47} y={i % 2 ? 34 : 20} width="40" height={i % 2 ? 66 : 80} rx="8" fill={`rgba(255,255,255,${0.85 - i * 0.12})`} />)}
+    </svg>
+  );
+}
+
 function Launcher({ setView }: { setView: (v: 'launcher' | 'studio' | 'campaign' | 'history') => void }) {
+  const [gallery, setGallery] = useState<any[]>([]);
+  useEffect(() => { creativeApi.list().then(l => setGallery(l.slice(0, 6))).catch(() => {}); }, []);
   const MODES = [
-    { key: 'campaign' as const, emoji: '🎬', title: 'Campaña UGC con Copiloto', desc: 'El agente planifica y arma los nodos (Gancho → Mensaje → CTA), los ejecutás en el canvas y ensamblás el video final.', tag: 'Nodos + IA', grad: 'linear-gradient(135deg,#7c5cfc,#4a2fd0)' },
-    { key: 'studio' as const, emoji: '✨', title: 'Studio por pasos', desc: 'Un asistente guiado: producto → objetivo → estilo → imagen → video → copy → resultado.', tag: 'Wizard', grad: 'linear-gradient(135deg,#4da6ff,#2b6fd0)' },
-    { key: 'history' as const, emoji: '🗂️', title: 'Mis creativos', desc: 'Tu biblioteca de imágenes y videos generados, con filtros y favoritos.', tag: 'Biblioteca', grad: 'linear-gradient(135deg,#00d68f,#00a06a)' },
+    { key: 'campaign' as const, kind: 'nodes' as const, title: 'Campaña UGC con Copiloto', desc: 'El agente planifica y arma los nodos. Ejecutás en el canvas y ensamblás el video final.', tag: 'Nodos + IA', grad: 'linear-gradient(135deg,#8b6bff,#4a2fd0)' },
+    { key: 'studio' as const, kind: 'wizard' as const, title: 'Studio por pasos', desc: 'Asistente guiado: producto → objetivo → estilo → imagen → video → copy.', tag: 'Wizard', grad: 'linear-gradient(135deg,#4da6ff,#2b6fd0)' },
+    { key: 'history' as const, kind: 'library' as const, title: 'Mis creativos', desc: 'Tu biblioteca de imágenes y videos, con filtros y favoritos.', tag: 'Biblioteca', grad: 'linear-gradient(135deg,#00d68f,#00a06a)' },
   ];
   return (
-    <div style={{ padding: '32px clamp(16px,3vw,44px)', maxWidth: 1100, margin: '0 auto' }}>
-      <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(24px,3vw,32px)', margin: '0 0 6px' }}>¿Qué querés crear hoy?</h1>
-      <p style={{ color: C.textMuted, fontSize: 15, margin: '0 0 28px' }}>Elegí cómo trabajar. La IA hace el trabajo pesado; vos elegís y ajustás.</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+    <div style={{ padding: '28px clamp(16px,3vw,44px)', maxWidth: 1200, margin: '0 auto' }}>
+      {/* Banner */}
+      <div className="cv-fade-in" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 'clamp(24px,3.5vw,40px)', marginBottom: 28, background: 'radial-gradient(120% 160% at 0% 0%, #8b6bff, #5b3ff0 45%, #33228f 80%)' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(50% 90% at 100% 0%, #4da6ff33, transparent 60%)' }} />
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 560 }}>
+          <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(24px,3.4vw,36px)', color: '#fff', lineHeight: 1.05, margin: '0 0 10px', letterSpacing: -0.5 }}>Creá tu campaña publicitaria con IA</h1>
+          <p style={{ color: 'rgba(255,255,255,.85)', fontSize: 15, margin: '0 0 20px', lineHeight: 1.5 }}>Elegí cómo trabajar: dejá que el Copiloto arme los nodos por vos, o seguí el asistente paso a paso.</p>
+          <button onClick={() => setView('campaign')} className="cv-lift" style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 10px 24px -8px #0007' }}>🎬 Crear campaña UGC</button>
+        </div>
+        <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', width: 260, height: 120, opacity: 0.95, zIndex: 1 }} className="hero-thumbs"><ModePreview kind="nodes" /></div>
+      </div>
+
+      {/* Modos */}
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginBottom: 16 }}>Empezá una creación</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16, marginBottom: 30 }}>
         {MODES.map(m => (
-          <button key={m.key} onClick={() => setView(m.key)} className="cv-card" style={{ textAlign: 'left', padding: 22, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12, minHeight: 200 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: m.grad, display: 'grid', placeItems: 'center', fontSize: 26, boxShadow: '0 10px 24px -10px #000a' }}>{m.emoji}</div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontWeight: 700, color: C.accent, background: C.accentDim, borderRadius: 999, padding: '3px 10px', width: 'fit-content', textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.tag}</div>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18 }}>{m.title}</div>
-            <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, flex: 1 }}>{m.desc}</div>
-            <div style={{ color: C.accent, fontWeight: 700, fontSize: 13 }}>Empezar →</div>
+          <button key={m.key} onClick={() => setView(m.key)} className="cv-card cv-thumb" style={{ textAlign: 'left', padding: 0, cursor: 'pointer', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ height: 132, background: m.grad, padding: 12, position: 'relative' }}>
+              <span style={{ position: 'absolute', top: 12, left: 12, fontSize: 10.5, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,.22)', borderRadius: 999, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: 0.5, zIndex: 2 }}>{m.tag}</span>
+              <ModePreview kind={m.kind} />
+            </div>
+            <div style={{ padding: 18 }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17, marginBottom: 6 }}>{m.title}</div>
+              <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, marginBottom: 12 }}>{m.desc}</div>
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 13.5 }}>Empezar →</div>
+            </div>
           </button>
         ))}
       </div>
+
+      {/* Tus creativos */}
+      {gallery.length > 0 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18 }}>Tus creativos recientes</div>
+            <button onClick={() => setView('history')} className="cv-lift" style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.text, borderRadius: 10, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Ver todos →</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 14 }}>
+            {gallery.map(it => (
+              <div key={it.id} onClick={() => setView('history')} className="cv-card cv-thumb" style={{ overflow: 'hidden', cursor: 'pointer', padding: 0 }}>
+                <div style={{ aspectRatio: '3/4', background: '#16162a', overflow: 'hidden' }}>
+                  {it.video_url ? <video src={it.video_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : it.output_url ? <img src={it.output_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#333355' }}>🎨</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
