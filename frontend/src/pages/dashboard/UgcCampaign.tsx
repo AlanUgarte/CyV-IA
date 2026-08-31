@@ -9,10 +9,13 @@ const toBase64 = (file: File) => new Promise<string>((res, rej) => { const r = n
 type SceneStatus = 'idle' | 'running' | 'done' | 'error';
 interface SceneRun { status: SceneStatus; imageUrl?: string; videoUrl?: string }
 
-const SCENE_META: Record<string, { emoji: string; label: string }> = {
-  hook: { emoji: '🎣', label: 'Gancho' }, message: { emoji: '💬', label: 'El mensaje' },
-  build: { emoji: '⚡', label: 'Se construye' }, cta: { emoji: '🎯', label: 'CTA' },
-};
+// Esqueleto para mostrar el canvas poblado antes de que el copiloto planifique
+const SKELETON: UgcScene[] = [
+  { key: 'hook', title: 'Gancho', seconds: 8, role: '', imagePrompt: '', videoPrompt: '', script: '' },
+  { key: 'message', title: 'El mensaje', seconds: 8, role: '', imagePrompt: '', videoPrompt: '', script: '' },
+  { key: 'build', title: 'Se construye', seconds: 8, role: '', imagePrompt: '', videoPrompt: '', script: '' },
+  { key: 'cta', title: 'CTA', seconds: 8, role: '', imagePrompt: '', videoPrompt: '', script: '' },
+];
 
 // Campaña UGC por "nodos": el agente planifica 4 escenas y las genera con IA (Seedance).
 export default function UgcCampaign({ costs, credits, setCredits }: { costs: Record<string, number>; credits: number; setCredits: (n: number) => void }) {
@@ -95,7 +98,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
 
   const doneCount = Object.values(runs).filter(r => r.status === 'done').length;
   const [saved, setSaved] = useState(false);
-  const [layout, setLayout] = useState<'list' | 'canvas'>('canvas');
+  const viewPlan = plan ?? { creator: 'Tu creador IA', scenes: SKELETON };
 
   const addScene = () => {
     if (!plan) return;
@@ -137,21 +140,20 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   };
 
   return (
-    <div style={{ padding: '28px clamp(16px,3vw,40px)', color: C.text, maxWidth: 1000, margin: '0 auto' }}>
-      <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 24, margin: '0 0 4px' }}>Campaña UGC con IA</h1>
-      <p style={{ color: C.textMuted, fontSize: 14, margin: '0 0 22px' }}>El agente planifica un video UGC en 4 escenas (Gancho → Mensaje → Se construye → CTA) con una persona sintética y lo genera con IA.</p>
-
-      {/* Producto */}
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 20 }}>
-        <div onClick={() => fileRef.current?.click()} style={{ width: 72, height: 72, borderRadius: 12, border: `1.5px dashed ${C.borderBright}`, background: C.surface, display: 'grid', placeItems: 'center', cursor: 'pointer', overflow: 'hidden', flexShrink: 0 }}>
-          {imageBase64 ? <img src={imageBase64} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 22 }}>📷</span>}
+    <div style={{ padding: '16px clamp(12px,2vw,24px)', color: C.text }}>
+      {/* Barra superior: título + producto compacto */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ marginRight: 'auto' }}>
+          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 19 }}>🎬 Campaña UGC · Canvas</div>
+          <div style={{ color: C.textMuted, fontSize: 12.5 }}>{plan ? <>Creador <b style={{ color: C.text }}>{plan.creator}</b> · {plan.scenes.length} escenas · <b style={{ color: C.accent }}>{totalCost} créditos</b> · {doneCount}/{plan.scenes.length} listas</> : 'El Copiloto arma los nodos por vos. Contale tu producto en el chat →'}</div>
+        </div>
+        <div onClick={() => fileRef.current?.click()} title="Imagen del producto" style={{ width: 44, height: 44, borderRadius: 10, border: `1.5px dashed ${C.borderBright}`, background: C.surface, display: 'grid', placeItems: 'center', cursor: 'pointer', overflow: 'hidden', flexShrink: 0 }}>
+          {imageBase64 ? <img src={imageBase64} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 18 }}>📷</span>}
         </div>
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={async e => e.target.files?.[0] && setImageBase64(await toBase64(e.target.files[0]))} />
-        <label style={{ flex: 1, minWidth: 220 }}>
-          <span style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 5 }}>Producto</span>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Papas GoodShow Cheddar" style={{ width: '100%', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', color: C.text, fontSize: 14, outline: 'none' }} />
-        </label>
-        <Btn onClick={() => startCampaign()} disabled={planning || (!name && !imageBase64)}>{planning ? 'Planeando…' : plan ? 'Replanificar' : '🤖 Planificar campaña'}</Btn>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Producto…" style={{ width: 180, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', color: C.text, fontSize: 13, outline: 'none' }} />
+        <Btn onClick={() => startCampaign()} disabled={planning || (!name && !imageBase64)}>{planning ? 'Planeando…' : plan ? 'Replanificar' : '🤖 Planificar'}</Btn>
+        {doneCount > 0 && <button onClick={saveProject} style={{ padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', color: C.text }}>{saved ? '✓ Guardado' : '💾 Guardar'}</button>}
       </div>
 
       {askDur && (
@@ -175,51 +177,17 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
         </div>
       )}
 
-      {err && <div style={{ background: C.redDim, border: `1px solid ${C.red}`, color: C.red, borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>⚠️ {err}</div>}
+      {err && <div style={{ background: C.redDim, border: `1px solid ${C.red}`, color: C.red, borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 12 }}>⚠️ {err}</div>}
 
-      {/* Nodos del plan */}
-      {plan && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ fontSize: 13, color: C.textMuted }}>Creador: <b style={{ color: C.text }}>{plan.creator}</b> · {plan.scenes.length} escenas · <b style={{ color: C.accent }}>{totalCost} créditos</b> · {doneCount}/{plan.scenes.length} listas</div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: 3, background: C.surface, borderRadius: 9, padding: 3, border: `1px solid ${C.border}` }}>
-                {(['canvas', 'list'] as const).map(v => (
-                  <button key={v} onClick={() => setLayout(v)} style={{ padding: '6px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: layout === v ? C.accent : 'transparent', color: layout === v ? '#fff' : C.textMuted }}>{v === 'canvas' ? '⬡ Canvas' : '☰ Lista'}</button>
-                ))}
-              </div>
-              {doneCount > 0 && <button onClick={saveProject} style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', color: C.text }}>{saved ? '✓ Guardado' : '💾 Guardar proyecto'}</button>}
-              {layout === 'list' && <Btn onClick={runAll} disabled={running}>{running ? 'Generando…' : `▶ Ejecutar ${plan.scenes.length} nodos`}</Btn>}
-            </div>
-          </div>
-
-          {layout === 'canvas' ? (
-            <div style={{ display: 'flex', gap: 14, alignItems: 'stretch' }} className="canvas-copilot">
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
-              </div>
-              <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={(t) => startCampaign(t)} />
-            </div>
-          ) : (
-            <>
-              <NodeCard emoji="🧑‍🎤" title={`Personaje — ${plan.creator}`} badges={['gpt-image-2']} status="done" note="Persona sintética consistente para todas las escenas" />
-              <Connector />
-              {plan.scenes.map((s, i) => {
-                const run = runs[s.key] ?? { status: 'idle' };
-                const meta = SCENE_META[s.key] ?? { emoji: '🎬', label: s.title };
-                return (
-                  <div key={s.key}>
-                    <NodeCard emoji={meta.emoji} title={`Escena ${i + 1} — ${s.title || meta.label}`} badges={['gpt-image-2', 'Seedance 1.5', `${s.seconds}s`]} status={run.status} note={s.script} media={run.videoUrl} />
-                    {i < plan.scenes.length - 1 && <Connector />}
-                  </div>
-                );
-              })}
-              <Connector />
-              <NodeCard emoji="🎞️" title="Video final (9:16)" badges={['Ensamblado', 'Subtítulos']} status={doneCount === plan.scenes.length && plan.scenes.length > 0 ? 'done' : 'idle'} note="Une las escenas + música (al terminar todas las escenas)" />
-            </>
-          )}
-        </>
-      )}
+      {/* Canvas de nodos + Copiloto (siempre visible) */}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'stretch' }} className="canvas-copilot">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <CampaignCanvas plan={viewPlan} runs={runs} running={running} totalCost={totalCost} productImage={imageBase64}
+            onRunAll={plan ? runAll : () => pushMsg('copilot', 'Primero contame qué producto querés promocionar (escribilo en el chat) y armo los nodos por vos.')}
+            onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
+        </div>
+        <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={(t) => startCampaign(t)} />
+      </div>
     </div>
   );
 }
@@ -255,35 +223,6 @@ function CopilotPanel({ messages, running, planned, onGenerate, onSend }: { mess
     </aside>
   );
 }
-
-function NodeCard({ emoji, title, badges, status, note, media }: { emoji: string; title: string; badges: string[]; status: SceneStatus; note?: string; media?: string }) {
-  const STATUS: Record<SceneStatus, { t: string; c: string }> = {
-    idle: { t: 'Planificado', c: C.textMuted }, running: { t: '● Generando…', c: C.amber }, done: { t: '✓ Listo', c: C.green }, error: { t: '✕ Error', c: C.red },
-  };
-  const st = STATUS[status];
-  return (
-    <div style={{ background: C.surface, border: `1.5px solid ${status === 'running' ? C.amber : status === 'done' ? C.green : C.border}`, borderRadius: 14, padding: 14, display: 'flex', gap: 14, alignItems: 'center' }}>
-      {media
-        ? <video src={media} muted loop autoPlay playsInline style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 8, background: C.surface2, flexShrink: 0 }} />
-        : <div style={{ width: 40, height: 40, borderRadius: 10, background: C.surface2, display: 'grid', placeItems: 'center', fontSize: 20, flexShrink: 0 }}>{emoji}</div>}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 14 }}>{title}</div>
-        {note && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note}</div>}
-        <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
-          {badges.map(b => <span key={b} style={{ fontSize: 10, fontWeight: 600, color: C.blue, background: C.blueDim, borderRadius: 6, padding: '2px 7px' }}>{b}</span>)}
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        {status === 'running' && <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${C.surface2}`, borderTopColor: C.amber, animation: 'ugcspin 1s linear infinite' }} />}
-        <span style={{ color: st.c, fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>{st.t}</span>
-        {media && <a href={media} download target="_blank" rel="noreferrer" style={{ color: C.green, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>⬇</a>}
-      </div>
-      <style>{`@keyframes ugcspin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
-}
-
-function Connector() { return <div style={{ width: 2, height: 16, background: C.border, margin: '0 0 0 33px' }} />; }
 
 function Btn({ children, onClick, disabled }: any) {
   return <button onClick={onClick} disabled={disabled} style={{ padding: '10px 18px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, border: 'none', background: C.accent, color: '#fff', whiteSpace: 'nowrap' }}>{children}</button>;
