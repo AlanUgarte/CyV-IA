@@ -59,7 +59,6 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   const doPlan = async (overrideName?: string) => {
     const pName = (overrideName ?? brief ?? name) || 'Producto';
     setErr(null); setPlanning(true);
-    pushMsg('user', `Creá una campaña UGC de ${pName}.`);
     pushMsg('copilot', 'Analizando el producto y planificando las escenas…');
     try {
       const p = await creativeApi.ugcPlan({ product: { name: pName }, creatorKey });
@@ -100,17 +99,62 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   const [saved, setSaved] = useState(false);
   const viewPlan = plan ?? { creator: 'Tu creador IA', scenes: SKELETON };
 
-  const addScene = () => {
-    if (!plan) return;
+  const materialize = (p: typeof plan) => p ?? { creator: 'Tu creador IA', scenes: SKELETON.map(s => ({ ...s })) };
+  const addScene = (title?: string) => {
     const key = `extra_${Date.now()}`;
-    const scene: UgcScene = { key, title: 'Nueva escena', seconds: 8, role: 'Presentador', imagePrompt: `synthetic UGC person with the product ${name || ''}`, videoPrompt: 'natural UGC movement, person showing the product', script: '' };
-    setPlan({ ...plan, scenes: [...plan.scenes, scene] });
+    const scene: UgcScene = { key, title: title || 'Nueva escena', seconds: 8, role: 'Presentador', imagePrompt: `synthetic UGC person with the product ${name || ''}`, videoPrompt: 'natural UGC movement, person showing the product', script: '' };
+    setPlan(p => { const b = materialize(p); return { ...b, scenes: [...b.scenes, scene] }; });
     setRuns(r => ({ ...r, [key]: { status: 'idle' } }));
   };
   const deleteScene = (key: string) => {
-    if (!plan) return;
-    setPlan({ ...plan, scenes: plan.scenes.filter(s => s.key !== key) });
+    setPlan(p => { const b = materialize(p); return { ...b, scenes: b.scenes.filter(s => s.key !== key) }; });
     setRuns(r => { const c = { ...r }; delete c[key]; return c; });
+  };
+  const setAllDurations = (sec: number) => setPlan(p => { const b = materialize(p); return { ...b, scenes: b.scenes.map(s => ({ ...s, seconds: Math.min(15, Math.max(4, sec)) })) }; });
+
+  // ── El Copiloto interpreta y construye/edita los nodos por chat ──────────────
+  const recommend = () => {
+    if (!plan) return 'Contame el producto y un beneficio clave y armo el flujo Gancho → Mensaje → Se construye → CTA. Tip: subí una foto del producto (📷 arriba) para que la persona lo sostenga en cada escena.';
+    if (doneCount === 0) return `Tu flujo tiene ${plan.scenes.length} escenas. Te recomiendo: un gancho de 3s con una pregunta, mostrar el producto en la escena 2 y un CTA claro al final. ¿Sumo una escena de prueba social? Escribí: "agregá una escena de testimonio".`;
+    if (doneCount < plan.scenes.length) return `Vas ${doneCount}/${plan.scenes.length} escenas. Podés seguir con "ejecutá todo" o ajustar una escena antes de generarla.`;
+    return 'Ya tenés todas las escenas listas. Escribí "ensamblá" para unir el video final, o guardá la campaña como proyecto.';
+  };
+  const extractTitle = (t: string) => {
+    const m = t.match(/(?:escena|nodo|toma|clip)\s+(?:de|sobre|con|para)\s+(.+)/i) || t.match(/(?:de|sobre)\s+(.+)/i);
+    const s = m?.[1]?.trim().replace(/[.!?]+$/, '');
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : undefined;
+  };
+  const handleCopilot = (raw: string) => {
+    const t = raw.trim(); if (!t) return;
+    const s = t.toLowerCase();
+    const scenesNow = plan ? plan.scenes : SKELETON;
+    // Ejecutar / ensamblar
+    if (/\b(gener|ejecut|corr[ée]|render|dale ya)/.test(s)) { pushMsg('user', t); if (!plan) pushMsg('copilot', 'Todavía no armé los nodos con contenido real. Decime el producto y los creo; después los ejecutamos.'); else { pushMsg('copilot', `Perfecto, ejecuto los ${plan.scenes.length} nodos ahora.`); runAll(); } return; }
+    if (/\b(ensambl|uni[rí]|video final|junt[aá])/.test(s)) { pushMsg('user', t); pushMsg('copilot', 'Ensamblando el video final con las escenas listas…'); assembleFinal(); return; }
+    // Recomendaciones
+    if (/(recomend|consej|ayuda|suger|mejor|idea|qu[eé] hago)/.test(s)) { pushMsg('user', t); pushMsg('copilot', recommend()); return; }
+    // Borrar escena N
+    const idx = s.match(/escena\s*(\d+)/);
+    if (idx && /(borr|elimin|saca|quit)/.test(s)) { const i = +idx[1] - 1; pushMsg('user', t); if (scenesNow[i]) { deleteScene(scenesNow[i].key); pushMsg('copilot', `Listo, saqué la escena ${i + 1}. Quedan ${scenesNow.length - 1} nodos en Generación.`); } else pushMsg('copilot', `No encontré la escena ${i + 1}.`); return; }
+    // Duración
+    const secM = s.match(/(\d{1,2})\s*(?:s|seg)/);
+    const longer = /(m[aá]s largo|extend|dura m[aá]s)/.test(s), shorter = /(m[aá]s corto|acort)/.test(s);
+    if (secM || longer || shorter) {
+      pushMsg('user', t);
+      const per = secM ? Math.round(+secM[1] / scenesNow.length) : (materialize(plan).scenes[0].seconds + (longer ? 2 : -2));
+      setAllDurations(per);
+      pushMsg('copilot', `Ajusté cada escena a ~${Math.min(15, Math.max(4, per))}s (${Math.min(15, Math.max(4, per)) * scenesNow.length}s en total aprox).`);
+      return;
+    }
+    // Agregar escena
+    if (/(agreg|sum[aá]|añad|otra|nuev|incorpor)/.test(s) && /(escena|nodo|toma|clip|parte)/.test(s)) {
+      const title = extractTitle(t); pushMsg('user', t); addScene(title);
+      pushMsg('copilot', `Agregué una escena${title ? ` de "${title}"` : ''} al grupo Generación. Podés editarla tocando el nodo, o decime otra.`);
+      return;
+    }
+    // Por defecto: es el producto → planificamos
+    pushMsg('user', t); setName(t); startCampaign(t);
+    pushMsg('copilot', `¡Buenísimo, "${t}"! Elegí la duración arriba y armo los nodos (Gancho → Mensaje → Se construye → CTA).`);
   };
 
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | undefined>();
@@ -186,7 +230,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
             onRunAll={plan ? runAll : () => pushMsg('copilot', 'Primero contame qué producto querés promocionar (escribilo en el chat) y armo los nodos por vos.')}
             onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
         </div>
-        <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={(t) => startCampaign(t)} />
+        <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={handleCopilot} />
       </div>
     </div>
   );

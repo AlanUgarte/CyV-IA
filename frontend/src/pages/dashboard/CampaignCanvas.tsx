@@ -78,7 +78,7 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
           Flujo · <b style={{ color: C.text }}>{nodes.length} nodos</b> · {doneCount}/{plan.scenes.length} escenas · <b style={{ color: C.accent }}>{totalCost} créditos</b>
         </div>
         <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
-          <button onClick={onAddScene} style={tbtn}>+ Nodo</button>
+          <button onClick={() => onAddScene()} style={tbtn}>+ Nodo</button>
           {finalDone && !finalVideoUrl && onAssemble && <button onClick={onAssemble} disabled={assembling} style={{ ...tbtn, background: C.gradGreen, color: '#04140d', border: 'none', fontWeight: 700 }}>{assembling ? 'Ensamblando…' : '🎬 Ensamblar'}</button>}
           <button onClick={onRunAll} disabled={running} style={{ ...tbtn, background: C.accent, color: '#fff', border: 'none', fontWeight: 700 }}>{running ? 'Ejecutando…' : '▶ Ejecutar todo'}</button>
         </div>
