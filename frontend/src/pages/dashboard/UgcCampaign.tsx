@@ -78,6 +78,18 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
     setRuns(r => { const c = { ...r }; delete c[key]; return c; });
   };
 
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string | undefined>();
+  const [assembling, setAssembling] = useState(false);
+  const assembleFinal = async () => {
+    if (!plan) return;
+    const urls = plan.scenes.map(s => runs[s.key]?.videoUrl).filter(Boolean) as string[];
+    if (!urls.length) return;
+    setAssembling(true); setErr(null);
+    try { const r = await creativeApi.assembleFinal(urls); setFinalVideoUrl(r.videoUrl); }
+    catch { setErr('No se pudo ensamblar el video final.'); }
+    finally { setAssembling(false); }
+  };
+
   const saveProject = async () => {
     if (!plan) return;
     const first = plan.scenes.map(s => runs[s.key]).find(r => r?.videoUrl || r?.imageUrl);
@@ -129,7 +141,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
           </div>
 
           {layout === 'canvas' ? (
-            <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} onAddScene={addScene} onDeleteScene={deleteScene} />
+            <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
           ) : (
             <>
               <NodeCard emoji="🧑‍🎤" title={`Personaje — ${plan.creator}`} badges={['gpt-image-2']} status="done" note="Persona sintética consistente para todas las escenas" />

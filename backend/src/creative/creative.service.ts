@@ -5,6 +5,11 @@ import { StorageService } from '../uploads/storage.service';
 import { OpenaiService, Fmt } from './openai.service';
 import { IMAGE_PROVIDER, VIDEO_PROVIDER, ImageProvider, VideoProvider } from './providers/types';
 import { CREATOR_PRESETS, SCENE_BY_CATEGORY, creatorByKey } from './creators.config';
+import { ffmpeg } from '../common/ffmpeg';
+import axios from 'axios';
+import * as os from 'os';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // ── Catálogos (concepto → guía para GPT) ─────────────────────────────────────
 export const OBJECTIVES: Record<string, string> = {
@@ -223,6 +228,49 @@ JSON: { "creator": "${creator}", "scenes": [ {"key":"hook",...}, {"key":"message
     const dataUrl = await this.openai.speech(text || 'Hola, esto es una muestra de voz.', voiceKey);
     const audioUrl = await this.persist(dataUrl, 'image'); // persist genérico (mp3)
     return { audioUrl };
+  }
+
+  // ── Video final: ensambla las escenas (9:16 1080x1920) en un solo MP4 ───────
+  async assembleFinalVideo(videoUrls: string[], musicUrl?: string): Promise<{ videoUrl: string }> {
+    const urls = (videoUrls || []).filter(Boolean);
+    if (!urls.length) throw new BadRequestException('No hay escenas para ensamblar');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ugc_'));
+    const files: string[] = [];
+    try {
+      for (let i = 0; i < urls.length; i++) {
+        const dl = await axios.get(urls[i], { responseType: 'arraybuffer', timeout: 60_000 });
+        const f = path.join(tmp, `s${i}.mp4`);
+        fs.writeFileSync(f, Buffer.from(dl.data as ArrayBuffer));
+        files.push(f);
+      }
+      let music: string | undefined;
+      if (musicUrl) {
+        try { const dl = await axios.get(musicUrl, { responseType: 'arraybuffer', timeout: 30_000 }); music = path.join(tmp, 'music.mp3'); fs.writeFileSync(music, Buffer.from(dl.data as ArrayBuffer)); } catch { /* opcional */ }
+      }
+      const out = path.join(tmp, 'final.mp4');
+      // Normaliza cada clip a 1080x1920/30fps y concatena (re-encode para tolerar códecs distintos)
+      await new Promise<void>((resolve, reject) => {
+        const cmd = ffmpeg();
+        files.forEach(f => cmd.input(f));
+        if (music) cmd.input(music);
+        const filters: string[] = [];
+        files.forEach((_, i) => filters.push(`[${i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30[v${i}]`));
+        filters.push(`${files.map((_, i) => `[v${i}]`).join('')}concat=n=${files.length}:v=1:a=0[outv]`);
+        const maps = ['-map', '[outv]'];
+        if (music) maps.push('-map', `${files.length}:a`, '-shortest');
+        cmd.complexFilter(filters)
+          .outputOptions([...maps, '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-movflags', '+faststart'])
+          .output(out)
+          .on('end', () => resolve())
+          .on('error', err => reject(err))
+          .run();
+      });
+      const b64 = fs.readFileSync(out).toString('base64');
+      const videoUrl = await this.persist(`data:video/mp4;base64,${b64}`, 'video');
+      return { videoUrl };
+    } finally {
+      try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* ignore */ }
+    }
   }
 
   // ── Favoritos ────────────────────────────────────────────────────────────────

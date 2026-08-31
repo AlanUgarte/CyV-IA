@@ -130,6 +130,10 @@ export class CreativeController {
   @Post('tts') @HttpCode(HttpStatus.OK)
   async tts(@Body() body: { text: string; voice?: string }) { return this.svc.generateVoice(body.text, body.voice); }
 
+  // Ensamblar el video final de la campaña (une las escenas). Gratis (solo cómputo).
+  @Post('ugc-campaign/assemble') @HttpCode(HttpStatus.OK)
+  async assemble(@Body() body: { videoUrls: string[]; musicUrl?: string }) { return this.svc.assembleFinalVideo(body.videoUrls, body.musicUrl); }
+
   @Post(':id/favorite') @HttpCode(HttpStatus.OK)
   async favorite(@Param('id') id: string, @Request() req: any) { return this.svc.toggleFavorite(id, req.user.id); }
 

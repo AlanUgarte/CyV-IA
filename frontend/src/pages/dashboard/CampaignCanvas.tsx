@@ -10,7 +10,7 @@ interface GNode { id: string; x: number; y: number; emoji: string; title: string
 const W = 236, H = 104;
 
 // Editor de flujo (canvas de nodos) para la campaña UGC: personaje → escenas → video final.
-export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCost, onAddScene, onDeleteScene }: {
+export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCost, onAddScene, onDeleteScene, finalVideoUrl, assembling, onAssemble }: {
   plan: { creator: string; scenes: UgcScene[] };
   runs: Record<string, SceneRun>;
   running: boolean;
@@ -18,6 +18,9 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
   totalCost: number;
   onAddScene: () => void;
   onDeleteScene: (key: string) => void;
+  finalVideoUrl?: string;
+  assembling?: boolean;
+  onAssemble?: () => void;
 }) {
   const [zoom, setZoom] = useState(0.85);
   const [pan, setPan] = useState({ x: 20, y: 10 });
@@ -34,7 +37,7 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
     nodes.push({ id: s.key, x: 330, y: 20 + i * 140, emoji: ['🎣', '💬', '⚡', '🎯'][i] ?? '🎬', title: `Escena ${i + 1} — ${s.title}`, badges: ['gpt-image-2', 'Seedance 1.5', `${s.seconds}s`], status: run.status, media: run.videoUrl, scene: s });
   });
   const finalDone = doneCount === plan.scenes.length && plan.scenes.length > 0;
-  nodes.push({ id: 'final', x: 640, y: 220, emoji: '🎞️', title: 'Video final (9:16)', badges: ['Ensamblado', 'Subtítulos'], status: finalDone ? 'done' : 'idle' });
+  nodes.push({ id: 'final', x: 640, y: 220, emoji: '🎞️', title: 'Video final (9:16)', badges: ['Ensamblado', '9:16'], status: finalVideoUrl ? 'done' : assembling ? 'running' : 'idle', media: finalVideoUrl });
 
   const byId = (id: string) => nodes.find(n => n.id === id)!;
   const edges: [string, string][] = [];
@@ -59,6 +62,7 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
         </div>
         <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
           <button onClick={onAddScene} style={{ background: C.surface, color: C.text, border: `1px solid ${C.borderBright}`, borderRadius: 10, padding: '9px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ Agregar escena</button>
+          {finalDone && !finalVideoUrl && onAssemble && <button onClick={onAssemble} disabled={assembling} style={{ background: C.gradGreen, color: '#04140d', border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: assembling ? 'wait' : 'pointer', opacity: assembling ? 0.6 : 1 }}>{assembling ? 'Ensamblando…' : '🎬 Ensamblar video final'}</button>}
           <button onClick={onRunAll} disabled={running} style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer', opacity: running ? 0.6 : 1 }}>{running ? 'Ejecutando…' : `▶ Ejecutar todo (${nodes.length} nodos)`}</button>
         </div>
       </div>

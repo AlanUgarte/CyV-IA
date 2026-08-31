@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import * as ffmpeg from 'fluent-ffmpeg';
+import { ffmpeg } from '../common/ffmpeg';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
