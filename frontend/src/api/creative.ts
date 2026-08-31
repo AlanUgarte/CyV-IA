@@ -10,6 +10,7 @@ export interface ProductInfo {
 export interface ImageVariant { key: string; label: string; description: string; prompt: string; url: string; model?: string }
 export interface CopyVariant { key: string; title: string; body: string; cta: string; description: string; hashtags: string[] }
 export interface Strategy { chosenStyle: string; concept: string; angle: string; toneNotes: string }
+export interface UgcScene { key: string; title: string; seconds: number; role: string; imagePrompt: string; videoPrompt: string; script: string }
 
 // el interceptor del backend envuelve en { success, data }, por eso .data.data
 const D = <T,>(p: Promise<{ data: { data: T } }>) => p.then(r => r.data.data);
@@ -43,6 +44,12 @@ export const creativeApi = {
     D<{ creatorKey: string; scene: string; hook: string; action: string; cta: string }>(api.post('/creative/ugc-auto', body, { timeout: 60_000 })),
   ugc: (body: { product: ProductInfo; creatorKey?: string; scene?: string; hook?: string; action?: string; cta?: string; duration?: '5' | '10'; referenceImage?: string; format?: Fmt }) =>
     D<{ imageUrl: string; videoUrl: string; creator: { key: string; name: string }; script: any; credits: number; creditsUsed: number }>(api.post('/creative/ugc', body, { timeout: 200_000, ...idem() })),
+
+  // Campaña UGC (agente planifica escenas → nodos)
+  ugcPlan: (body: { product: ProductInfo }) =>
+    D<{ creator: string; scenes: UgcScene[] }>(api.post('/creative/ugc-campaign/plan', body, { timeout: 90_000 })),
+  ugcScene: (body: { product: ProductInfo; scene: UgcScene; referenceImage?: string; format?: Fmt }) =>
+    D<{ imageUrl: string; videoUrl: string; sceneKey: string; credits: number; creditsUsed: number }>(api.post('/creative/ugc-campaign/scene', body, { timeout: 200_000, ...idem() })),
 
   favorite: (id: string) => D<{ is_favorite: boolean }>(api.post(`/creative/${id}/favorite`, {})),
   save: (body: any) => D<any>(api.post('/creative', body)),

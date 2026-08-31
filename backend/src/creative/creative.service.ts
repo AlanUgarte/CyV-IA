@@ -188,6 +188,35 @@ Devolvé JSON: { "creatorKey": "<una key>", "scene": "escenario en inglés acord
     };
   }
 
+  // ── CAMPAÑA UGC (agente planifica escenas tipo nodos: Gancho→Mensaje→Build→CTA) ─
+  async planUGCCampaign(product: ProductInfo): Promise<{
+    creator: string;
+    scenes: Array<{ key: string; title: string; seconds: number; role: string; imagePrompt: string; videoPrompt: string; script: string }>;
+  }> {
+    const creator = creatorByKey(undefined).name;
+    const plan = await this.openai.chatJSON<any>(
+      'Sos director de campañas UGC. Planificás un video UGC vertical de ~30s en 4 escenas para un producto, protagonizado por UNA persona sintética (nunca real).',
+      `Producto: ${JSON.stringify(product)}.
+Planificá 4 escenas de ~7-8s: "hook" (gancho, confesión/curiosidad), "message" (muestra el producto y su beneficio), "build" (prueba/uso, momento culminante), "cta" (llamado a la acción).
+Para cada escena devolvé: title (corto, español), seconds (7 u 8), role ("Presentador" o "Producto"), imagePrompt (EN INGLÉS: la persona sintética con el producto en un escenario acorde, estética UGC vertical selfie, sin watermark), videoPrompt (EN INGLÉS: el movimiento/acción natural), script (la frase que dice en español).
+JSON: { "creator": "${creator}", "scenes": [ {"key":"hook",...}, {"key":"message",...}, {"key":"build",...}, {"key":"cta",...} ] }`,
+      1100,
+    );
+    return { creator: plan.creator ?? creator, scenes: (plan.scenes ?? []).slice(0, 4) };
+  }
+
+  // Genera UNA escena de la campaña (imagen persona+producto → video Seedance)
+  async generateUGCScene(input: { product: ProductInfo; scene: { key: string; imagePrompt: string; videoPrompt: string; seconds?: number }; referenceImage?: string; format?: Fmt }) {
+    const img = await this.imageProvider.generate({
+      prompt: `${input.scene.imagePrompt}. Vertical smartphone UGC photo of a fully fictional AI-generated person (not real, not a celebrity) holding/using the product "${input.product.name}". Natural lighting, no watermark, no text overlay.`,
+      format: input.format ?? '9:16', quality: 'standard', referenceImage: input.referenceImage,
+    });
+    const imageUrl = await this.persist(img.dataUrl, 'image');
+    const dur = (input.scene.seconds ?? 8) >= 9 ? 10 : 5;
+    const vid = await this.videoProvider.generate({ image: img.dataUrl, prompt: input.scene.videoPrompt || 'natural UGC movement, person interacting with the product', duration: dur as 5 | 10, resolution: '1080p' });
+    return { imageUrl, videoUrl: vid.url, model: vid.model, seconds: vid.seconds, sceneKey: input.scene.key };
+  }
+
   // ── Favoritos ────────────────────────────────────────────────────────────────
   async toggleFavorite(id: string, userId: string) {
     const { rows } = await this.db.query(

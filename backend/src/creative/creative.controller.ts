@@ -113,6 +113,19 @@ export class CreativeController {
     return { ...(result as any), credits, creditsUsed };
   }
 
+  // ── Campaña UGC (agente planifica escenas tipo nodos) ───────────────────────
+  @Post('ugc-campaign/plan') @HttpCode(HttpStatus.OK)
+  async ugcPlan(@Body() body: { product: ProductInfo }) { return this.svc.planUGCCampaign(body.product); }
+
+  // Genera una escena de la campaña (imagen + video). Cuesta ugc_video_10.
+  @Post('ugc-campaign/scene') @HttpCode(HttpStatus.OK)
+  async ugcScene(@Body() body: any, @Request() req: any) {
+    const { result, credits, creditsUsed } = await this.billed(req,
+      { operation: 'ugc_video_10', amount: CREDIT_COSTS.ugc_video_10, provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds: 10 },
+      () => this.svc.generateUGCScene(body));
+    return { ...(result as any), credits, creditsUsed };
+  }
+
   @Post(':id/favorite') @HttpCode(HttpStatus.OK)
   async favorite(@Param('id') id: string, @Request() req: any) { return this.svc.toggleFavorite(id, req.user.id); }
 

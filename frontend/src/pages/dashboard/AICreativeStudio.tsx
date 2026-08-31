@@ -4,6 +4,7 @@ import { C } from '../../styles/theme';
 import { Spinner } from '../../components/ui';
 import { creativeApi, type Fmt, type ProductInfo, type ImageVariant, type CopyVariant, type Strategy } from '../../api/creative';
 import { aiCreditsConfig } from '../../config/aiCreditsConfig';
+import UgcCampaign from './UgcCampaign';
 
 // ── Catálogos de UI ──────────────────────────────────────────────────────────
 const STEPS = ['Producto', 'Objetivo', 'Estilo', 'Imagen', 'Video', 'Copy', 'Resultado'];
@@ -78,7 +79,7 @@ const EMPTY: StudioState = { product: { name: '' }, objective: 'vender', style: 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AICreativeStudio() {
   const nav = useNavigate();
-  const [view, setView] = useState<'studio' | 'history'>('studio');
+  const [view, setView] = useState<'studio' | 'campaign' | 'history'>('studio');
   const [step, setStep] = useState(1);
   const [s, setS] = useState<StudioState>(EMPTY);
   const patch = (p: Partial<StudioState>) => setS(prev => ({ ...prev, ...p }));
@@ -180,7 +181,9 @@ export default function AICreativeStudio() {
     <div style={{ minHeight: '100%', background: C.bg, color: C.text }}>
       <Header credits={credits} view={view} setView={setView} onNew={() => { reset(); setView('studio'); }} />
 
-      {view === 'history' ? (
+      {view === 'campaign' ? (
+        <UgcCampaign costs={costs} credits={credits} setCredits={setCredits} />
+      ) : view === 'history' ? (
         <History />
       ) : (
         <div style={{ display: 'flex', gap: 0, minHeight: 'calc(100vh - 64px)' }}>
@@ -249,7 +252,8 @@ export default function AICreativeStudio() {
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ credits, view, setView, onNew }: { credits: number; view: string; setView: (v: 'studio' | 'history') => void; onNew: () => void }) {
+function Header({ credits, view, setView, onNew }: { credits: number; view: string; setView: (v: 'studio' | 'campaign' | 'history') => void; onNew: () => void }) {
+  const TABS: [('studio' | 'campaign' | 'history'), string][] = [['studio', 'Studio'], ['campaign', '🎬 Campaña UGC'], ['history', 'Mis creativos']];
   return (
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px clamp(16px,3vw,40px)', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, background: C.bg, zIndex: 5 }}>
       <div>
@@ -258,9 +262,9 @@ function Header({ credits, view, setView, onNew }: { credits: number; view: stri
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ display: 'flex', gap: 4, background: C.surface, borderRadius: 10, padding: 3, border: `1px solid ${C.border}` }}>
-          {(['studio', 'history'] as const).map(v => (
-            <button key={v} onClick={() => setView(v)} style={{ padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: view === v ? C.accent : 'transparent', color: view === v ? '#fff' : C.textMuted }}>
-              {v === 'studio' ? 'Studio' : 'Mis creativos'}
+          {TABS.map(([v, label]) => (
+            <button key={v} onClick={() => setView(v)} style={{ padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, background: view === v ? C.accent : 'transparent', color: view === v ? '#fff' : C.textMuted, whiteSpace: 'nowrap' }}>
+              {label}
             </button>
           ))}
         </div>
