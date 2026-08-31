@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { C } from '../../styles/theme';
 import { creativeApi, type UgcScene, type Fmt } from '../../api/creative';
+import { workspaceApi } from '../../api/workspace';
 
 const toBase64 = (file: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file); });
 
@@ -57,6 +58,21 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   };
 
   const doneCount = Object.values(runs).filter(r => r.status === 'done').length;
+  const [saved, setSaved] = useState(false);
+
+  const saveProject = async () => {
+    if (!plan) return;
+    const first = plan.scenes.map(s => runs[s.key]).find(r => r?.videoUrl || r?.imageUrl);
+    try {
+      await workspaceApi.createProject({
+        name: `Campaña UGC — ${name || 'Producto'}`, type: 'ugc_campaign',
+        thumbnailUrl: first?.videoUrl || first?.imageUrl,
+        creditsUsed: doneCount * sceneCost,
+        data: { product: { name }, creator: plan.creator, scenes: plan.scenes.map(s => ({ ...s, ...(runs[s.key] || {}) })) },
+      });
+      setSaved(true); setTimeout(() => setSaved(false), 2500);
+    } catch { setErr('No se pudo guardar el proyecto.'); }
+  };
 
   return (
     <div style={{ padding: '28px clamp(16px,3vw,40px)', color: C.text, maxWidth: 1000, margin: '0 auto' }}>
@@ -83,7 +99,10 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ fontSize: 13, color: C.textMuted }}>Creador: <b style={{ color: C.text }}>{plan.creator}</b> · {plan.scenes.length} escenas · <b style={{ color: C.accent }}>{totalCost} créditos</b> · {doneCount}/{plan.scenes.length} listas</div>
-            <Btn onClick={runAll} disabled={running}>{running ? 'Generando…' : `▶ Ejecutar ${plan.scenes.length} nodos`}</Btn>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {doneCount > 0 && <button onClick={saveProject} style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', color: C.text }}>{saved ? '✓ Guardado' : '💾 Guardar como proyecto'}</button>}
+              <Btn onClick={runAll} disabled={running}>{running ? 'Generando…' : `▶ Ejecutar ${plan.scenes.length} nodos`}</Btn>
+            </div>
           </div>
 
           {/* Nodo personaje */}

@@ -74,6 +74,32 @@ async function ensureNewTables(pool: Pool): Promise<void> {
   // Comprobante guardado en DB (persistente; el disco de Railway es efímero)
   await pool.query(`ALTER TABLE credit_purchases ADD COLUMN IF NOT EXISTS receipt_data TEXT`);
 
+  // Proyectos (campañas guardadas) + espacio de marca
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(200) NOT NULL, type VARCHAR(40) NOT NULL DEFAULT 'ugc_campaign',
+      thumbnail_url TEXT, status VARCHAR(20) NOT NULL DEFAULT 'ready',
+      credits_used INTEGER NOT NULL DEFAULT 0, data JSONB NOT NULL DEFAULT '{}',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id, created_at DESC);
+    CREATE TABLE IF NOT EXISTS brand_products (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(200) NOT NULL, image_url TEXT, image_data TEXT,
+      description TEXT, price VARCHAR(40), url TEXT, category VARCHAR(80),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_brand_products_user ON brand_products(user_id, created_at DESC);
+    CREATE TABLE IF NOT EXISTS brand_profiles (
+      user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      brand_name VARCHAR(200), logo_url TEXT, primary_color VARCHAR(20),
+      data JSONB NOT NULL DEFAULT '{}', updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
   // CEO / admin owner — idempotent, kept in sync on every boot
   await pool.query(`
     INSERT INTO users (email, password_hash, full_name, role, status, email_verified)

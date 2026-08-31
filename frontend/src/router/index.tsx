@@ -33,6 +33,8 @@ const Reports         = lazyLoad(() => import('../pages/dashboard/Reports'));
 const Integrations    = lazyLoad(() => import('../pages/dashboard/Integrations'));
 const Billing         = lazyLoad(() => import('../pages/dashboard/Billing'));
 const Credits         = lazyLoad(() => import('../pages/dashboard/Credits'));
+const Projects        = lazyLoad(() => import('../pages/dashboard/Projects'));
+const Brand           = lazyLoad(() => import('../pages/dashboard/Brand'));
 const Profile         = lazyLoad(() => import('../pages/dashboard/Profile'));
 
 const AdminShell      = lazyLoad(() => import('../pages/admin/AdminShell'));
@@ -128,6 +130,8 @@ export const router = createBrowserRouter([
       { path: 'integrations',element: <ErrorBoundary><S><Integrations /></S></ErrorBoundary> },
       { path: 'billing',     element: <ErrorBoundary><S><Billing /></S></ErrorBoundary> },
       { path: 'credits',     element: <ErrorBoundary><S><Credits /></S></ErrorBoundary> },
+      { path: 'projects',    element: <ErrorBoundary><S><Projects /></S></ErrorBoundary> },
+      { path: 'brand',       element: <ErrorBoundary><S><Brand /></S></ErrorBoundary> },
       { path: 'profile',     element: <ErrorBoundary><S><Profile /></S></ErrorBoundary> },
     ],
   },
