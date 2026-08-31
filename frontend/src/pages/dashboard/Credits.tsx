@@ -210,7 +210,7 @@ export default function Credits() {
   );
 }
 
-const cardStyle: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18 };
+const cardStyle: React.CSSProperties = { background: 'linear-gradient(180deg,#12122099,#0f0f1a)', border: `1px solid ${C.border}`, borderRadius: 16, padding: 18 };
 const btnPrimary: React.CSSProperties = { background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer', width: '100%' };
 const th: React.CSSProperties = { padding: '8px 10px', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 };
 const td: React.CSSProperties = { padding: '10px' };

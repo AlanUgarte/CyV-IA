@@ -35,7 +35,7 @@ export default function Brand() {
   return (
     <div style={{ padding: '28px clamp(16px,3vw,40px)', color: C.text }}>
       {/* Header */}
-      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+      <div style={{ background: 'linear-gradient(180deg,#12122099,#0f0f1a)', border: `1px solid ${C.border}`, borderRadius: 16, padding: 20, display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
         <div style={{ width: 56, height: 56, borderRadius: 14, background: brand.primary_color || C.accent, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 22, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
           {brand.logo_url ? <img src={brand.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (user?.fullName ?? 'A')[0]}
         </div>
@@ -48,7 +48,7 @@ export default function Brand() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 22 }}>
         {[['Productos', stats?.products ?? 0], ['Proyectos', stats?.projects ?? 0], ['Créditos usados', stats?.credits_used ?? 0], ['Avatares', 0], ['Voces', 0]].map(([l, v]) => (
-          <div key={l} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+          <div key={l} style={{ background: 'linear-gradient(180deg,#12122099,#0f0f1a)', border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
             <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 24 }}>{v}</div>
             <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{l}</div>
           </div>
@@ -94,7 +94,7 @@ function Products({ products, reload }: { products: BrandProduct[] | null; reloa
       </div>
 
       {adding && (
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 16, display: 'grid', gridTemplateColumns: '100px 1fr', gap: 14 }} className="prod-grid">
+        <div style={{ background: 'linear-gradient(180deg,#12122099,#0f0f1a)', border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 16, display: 'grid', gridTemplateColumns: '100px 1fr', gap: 14 }} className="prod-grid">
           <div onClick={() => fileRef.current?.click()} style={{ aspectRatio: '1', borderRadius: 10, border: `1.5px dashed ${C.borderBright}`, background: C.surface2, display: 'grid', placeItems: 'center', cursor: 'pointer', overflow: 'hidden' }}>
             {form.image ? <img src={form.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 22 }}>📷</span>}
           </div>

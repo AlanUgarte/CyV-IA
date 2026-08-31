@@ -39,7 +39,7 @@ export default function Projects() {
           <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 14 }}>Archivos <b style={{ color: C.text }}>{shown.length}</b></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 16 }}>
             {shown.map(p => (
-              <div key={p.id} style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${C.border}`, background: C.surface }}>
+              <div key={p.id} className="cv-card cv-thumb" style={{ overflow: 'hidden', padding: 0 }}>
                 <div onClick={() => nav('/dashboard/creatives')} style={{ aspectRatio: '16/10', background: C.surface2, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
                   {p.thumbnail_url
                     ? (/\.mp4|video/.test(p.thumbnail_url) ? <video src={p.thumbnail_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={p.thumbnail_url} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />)

@@ -84,7 +84,7 @@ export default function DashShell() {
           'relative flex items-center gap-3 w-full text-left rounded-xl transition-all duration-150 group',
           mini ? 'justify-center px-0 py-3' : 'px-3 py-2.5',
           active
-            ? 'bg-accent/10 text-accent font-medium'
+            ? 'text-accent font-semibold bg-gradient-to-r from-[#7c5cfc26] to-[#7c5cfc08] shadow-[0_0_0_1px_#7c5cfc2e]'
             : hl
             ? 'text-[#9d80ff] border border-[#7c5cfc33] bg-gradient-to-r from-[#7c5cfc08] to-[#4da6ff08]'
             : 'text-muted hover:bg-surface2 hover:text-text',
