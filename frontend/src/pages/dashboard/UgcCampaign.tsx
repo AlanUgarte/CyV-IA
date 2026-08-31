@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { C } from '../../styles/theme';
 import { creativeApi, type UgcScene, type Fmt } from '../../api/creative';
 import { workspaceApi } from '../../api/workspace';
+import CampaignCanvas from './CampaignCanvas';
 
 const toBase64 = (file: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file); });
 
@@ -59,6 +60,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
 
   const doneCount = Object.values(runs).filter(r => r.status === 'done').length;
   const [saved, setSaved] = useState(false);
+  const [layout, setLayout] = useState<'list' | 'canvas'>('canvas');
 
   const saveProject = async () => {
     if (!plan) return;
@@ -99,35 +101,37 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
             <div style={{ fontSize: 13, color: C.textMuted }}>Creador: <b style={{ color: C.text }}>{plan.creator}</b> · {plan.scenes.length} escenas · <b style={{ color: C.accent }}>{totalCost} créditos</b> · {doneCount}/{plan.scenes.length} listas</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {doneCount > 0 && <button onClick={saveProject} style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', color: C.text }}>{saved ? '✓ Guardado' : '💾 Guardar como proyecto'}</button>}
-              <Btn onClick={runAll} disabled={running}>{running ? 'Generando…' : `▶ Ejecutar ${plan.scenes.length} nodos`}</Btn>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 3, background: C.surface, borderRadius: 9, padding: 3, border: `1px solid ${C.border}` }}>
+                {(['canvas', 'list'] as const).map(v => (
+                  <button key={v} onClick={() => setLayout(v)} style={{ padding: '6px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: layout === v ? C.accent : 'transparent', color: layout === v ? '#fff' : C.textMuted }}>{v === 'canvas' ? '⬡ Canvas' : '☰ Lista'}</button>
+                ))}
+              </div>
+              {doneCount > 0 && <button onClick={saveProject} style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', color: C.text }}>{saved ? '✓ Guardado' : '💾 Guardar proyecto'}</button>}
+              {layout === 'list' && <Btn onClick={runAll} disabled={running}>{running ? 'Generando…' : `▶ Ejecutar ${plan.scenes.length} nodos`}</Btn>}
             </div>
           </div>
 
-          {/* Nodo personaje */}
-          <NodeCard emoji="🧑‍🎤" title={`Personaje — ${plan.creator}`} badges={['gpt-image-2']} status="done" note="Persona sintética consistente para todas las escenas" />
-          <Connector />
-
-          {plan.scenes.map((s, i) => {
-            const run = runs[s.key] ?? { status: 'idle' };
-            const meta = SCENE_META[s.key] ?? { emoji: '🎬', label: s.title };
-            return (
-              <div key={s.key}>
-                <NodeCard
-                  emoji={meta.emoji}
-                  title={`Escena ${i + 1} — ${s.title || meta.label}`}
-                  badges={['gpt-image-2', 'Seedance 1.5', `${s.seconds}s`]}
-                  status={run.status}
-                  note={s.script}
-                  media={run.videoUrl}
-                />
-                {i < plan.scenes.length - 1 && <Connector />}
-              </div>
-            );
-          })}
-          <Connector />
-          <NodeCard emoji="🎞️" title="Video final (9:16)" badges={['Ensamblado', 'Subtítulos']} status={doneCount === plan.scenes.length && plan.scenes.length > 0 ? 'done' : 'idle'} note="Une las escenas + música (al terminar todas las escenas)" />
+          {layout === 'canvas' ? (
+            <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} />
+          ) : (
+            <>
+              <NodeCard emoji="🧑‍🎤" title={`Personaje — ${plan.creator}`} badges={['gpt-image-2']} status="done" note="Persona sintética consistente para todas las escenas" />
+              <Connector />
+              {plan.scenes.map((s, i) => {
+                const run = runs[s.key] ?? { status: 'idle' };
+                const meta = SCENE_META[s.key] ?? { emoji: '🎬', label: s.title };
+                return (
+                  <div key={s.key}>
+                    <NodeCard emoji={meta.emoji} title={`Escena ${i + 1} — ${s.title || meta.label}`} badges={['gpt-image-2', 'Seedance 1.5', `${s.seconds}s`]} status={run.status} note={s.script} media={run.videoUrl} />
+                    {i < plan.scenes.length - 1 && <Connector />}
+                  </div>
+                );
+              })}
+              <Connector />
+              <NodeCard emoji="🎞️" title="Video final (9:16)" badges={['Ensamblado', 'Subtítulos']} status={doneCount === plan.scenes.length && plan.scenes.length > 0 ? 'done' : 'idle'} note="Une las escenas + música (al terminar todas las escenas)" />
+            </>
+          )}
         </>
       )}
     </div>
