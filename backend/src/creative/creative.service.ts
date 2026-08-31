@@ -189,14 +189,15 @@ Devolvé JSON: { "creatorKey": "<una key>", "scene": "escenario en inglés acord
   }
 
   // ── CAMPAÑA UGC (agente planifica escenas tipo nodos: Gancho→Mensaje→Build→CTA) ─
-  async planUGCCampaign(product: ProductInfo): Promise<{
+  async planUGCCampaign(product: ProductInfo, creatorKey?: string): Promise<{
     creator: string;
     scenes: Array<{ key: string; title: string; seconds: number; role: string; imagePrompt: string; videoPrompt: string; script: string }>;
   }> {
-    const creator = creatorByKey(undefined).name;
+    const preset = creatorByKey(creatorKey);
+    const creator = preset.name;
     const plan = await this.openai.chatJSON<any>(
       'Sos director de campañas UGC. Planificás un video UGC vertical de ~30s en 4 escenas para un producto, protagonizado por UNA persona sintética (nunca real).',
-      `Producto: ${JSON.stringify(product)}.
+      `Producto: ${JSON.stringify(product)}. Creador (persona sintética): ${preset.name} — ${preset.appearance} (${preset.ageRange}), tono ${preset.tone}. Usá SIEMPRE esta misma persona en todas las escenas.
 Planificá 4 escenas de ~7-8s: "hook" (gancho, confesión/curiosidad), "message" (muestra el producto y su beneficio), "build" (prueba/uso, momento culminante), "cta" (llamado a la acción).
 Para cada escena devolvé: title (corto, español), seconds (7 u 8), role ("Presentador" o "Producto"), imagePrompt (EN INGLÉS: la persona sintética con el producto en un escenario acorde, estética UGC vertical selfie, sin watermark), videoPrompt (EN INGLÉS: el movimiento/acción natural), script (la frase que dice en español).
 JSON: { "creator": "${creator}", "scenes": [ {"key":"hook",...}, {"key":"message",...}, {"key":"build",...}, {"key":"cta",...} ] }`,

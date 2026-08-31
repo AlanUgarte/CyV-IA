@@ -46,7 +46,7 @@ export const creativeApi = {
     D<{ imageUrl: string; videoUrl: string; creator: { key: string; name: string }; script: any; credits: number; creditsUsed: number }>(api.post('/creative/ugc', body, { timeout: 200_000, ...idem() })),
 
   // Campaña UGC (agente planifica escenas → nodos)
-  ugcPlan: (body: { product: ProductInfo }) =>
+  ugcPlan: (body: { product: ProductInfo; creatorKey?: string }) =>
     D<{ creator: string; scenes: UgcScene[] }>(api.post('/creative/ugc-campaign/plan', body, { timeout: 90_000 })),
   ugcScene: (body: { product: ProductInfo; scene: UgcScene; referenceImage?: string; format?: Fmt }) =>
     D<{ imageUrl: string; videoUrl: string; sceneKey: string; credits: number; creditsUsed: number }>(api.post('/creative/ugc-campaign/scene', body, { timeout: 200_000, ...idem() })),

@@ -3,6 +3,15 @@ import { C } from '../../styles/theme';
 import { Spinner } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { workspaceApi, type BrandProduct, type Brand as BrandT } from '../../api/workspace';
+import { creativeApi } from '../../api/creative';
+
+const VOICES = [
+  { key: 'fem_natural', label: 'Femenina — Natural', emoji: '🗣️' },
+  { key: 'fem_energetica', label: 'Femenina — Enérgica', emoji: '⚡' },
+  { key: 'masc_natural', label: 'Masculina — Natural', emoji: '🗣️' },
+  { key: 'masc_pro', label: 'Masculina — Profesional', emoji: '💼' },
+  { key: 'joven', label: 'Joven — Casual', emoji: '😎' },
+];
 
 const toBase64 = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(f); });
 type Tab = 'overview' | 'products' | 'avatars' | 'voices' | 'assets' | 'kit';
@@ -55,8 +64,8 @@ export default function Brand() {
 
       {(tab === 'overview' || tab === 'products') && <Products products={products} reload={load} />}
       {tab === 'kit' && <Kit brand={brand} onSaved={setBrand} />}
-      {tab === 'avatars' && <Empty emoji="🧑‍🎤" title="Avatares" text="Los avatares (creadores IA) se eligen automáticamente en la Campaña UGC. La gestión de avatares propios llega pronto." />}
-      {tab === 'voices' && <Empty emoji="🎙️" title="Voces" text="Voces IA para los videos UGC — próximamente vas a poder elegir y clonar voces." />}
+      {tab === 'avatars' && <Avatars brand={brand} onSaved={setBrand} />}
+      {tab === 'voices' && <Voices brand={brand} onSaved={setBrand} />}
       {tab === 'assets' && <Empty emoji="🗂️" title="Biblioteca de activos" text="Tus imágenes y videos generados se guardan en Creativos IA → Mis creativos." />}
     </div>
   );
@@ -155,6 +164,63 @@ function Kit({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => void }
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={async e => e.target.files?.[0] && setLogo(await toBase64(e.target.files[0]))} />
       </label>
       <div><button onClick={save} disabled={busy} style={{ ...btnP, opacity: busy ? 0.5 : 1 }}>{busy ? 'Guardando…' : 'Guardar marca'}</button></div>
+    </div>
+  );
+}
+
+function Avatars({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => void }) {
+  const [creators, setCreators] = useState<any[] | null>(null);
+  const [sel, setSel] = useState<string | undefined>(brand.data?.preferredCreator);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { creativeApi.creators().then(r => setCreators(r.creators)).catch(() => setCreators([])); }, []);
+  const pick = async (key: string) => {
+    setSel(key); setBusy(true);
+    try { const b = await workspaceApi.saveBrand({ data: { ...(brand.data || {}), preferredCreator: key } }); onSaved(b); } finally { setBusy(false); }
+  };
+  if (!creators) return <Spinner size={22} />;
+  return (
+    <div>
+      <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 4px' }}>Avatares (creadores IA)</h3>
+      <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 16px' }}>Personas 100% sintéticas para tus videos UGC. Elegí el creador preferido — la Campaña UGC lo usa por defecto.{busy && ' · guardando…'}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+        {creators.map(c => {
+          const on = sel === c.key;
+          return (
+            <button key={c.key} onClick={() => pick(c.key)} style={{ textAlign: 'left', padding: 16, borderRadius: 14, cursor: 'pointer', background: on ? C.accentDim : C.surface, border: `2px solid ${on ? C.accent : C.border}` }}>
+              <div style={{ fontSize: 26, marginBottom: 8 }}>🧑‍🎤</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name} {on && <span style={{ color: C.accent }}>✓</span>}</div>
+              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3 }}>{c.description}</div>
+              <div style={{ fontSize: 11, color: C.textDim, marginTop: 6 }}>{c.ageRange} · {c.tone}</div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Voices({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => void }) {
+  const [sel, setSel] = useState<string | undefined>(brand.data?.voice);
+  const [busy, setBusy] = useState(false);
+  const pick = async (key: string) => {
+    setSel(key); setBusy(true);
+    try { const b = await workspaceApi.saveBrand({ data: { ...(brand.data || {}), voice: key } }); onSaved(b); } finally { setBusy(false); }
+  };
+  return (
+    <div>
+      <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 4px' }}>Voces</h3>
+      <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 16px' }}>Elegí el estilo de voz para la narración de tus videos.{busy && ' · guardando…'}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+        {VOICES.map(v => {
+          const on = sel === v.key;
+          return (
+            <button key={v.key} onClick={() => pick(v.key)} style={{ textAlign: 'left', padding: 16, borderRadius: 14, cursor: 'pointer', background: on ? C.accentDim : C.surface, border: `2px solid ${on ? C.accent : C.border}` }}>
+              <div style={{ fontSize: 24, marginBottom: 8 }}>{v.emoji}</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{v.label} {on && <span style={{ color: C.accent }}>✓</span>}</div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

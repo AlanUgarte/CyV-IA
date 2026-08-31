@@ -10,12 +10,14 @@ interface GNode { id: string; x: number; y: number; emoji: string; title: string
 const W = 236, H = 104;
 
 // Editor de flujo (canvas de nodos) para la campaña UGC: personaje → escenas → video final.
-export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCost }: {
+export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCost, onAddScene, onDeleteScene }: {
   plan: { creator: string; scenes: UgcScene[] };
   runs: Record<string, SceneRun>;
   running: boolean;
   onRunAll: () => void;
   totalCost: number;
+  onAddScene: () => void;
+  onDeleteScene: (key: string) => void;
 }) {
   const [zoom, setZoom] = useState(0.85);
   const [pan, setPan] = useState({ x: 20, y: 10 });
@@ -55,7 +57,10 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '6px 12px', fontSize: 12, color: C.textMuted, pointerEvents: 'auto' }}>
           {nodes.length} nodos · <b style={{ color: C.text }}>{doneCount}/{plan.scenes.length}</b> escenas · <b style={{ color: C.accent }}>{totalCost} créditos</b>
         </div>
-        <button onClick={onRunAll} disabled={running} style={{ pointerEvents: 'auto', background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer', opacity: running ? 0.6 : 1 }}>{running ? 'Ejecutando…' : `▶ Ejecutar todo (${nodes.length} nodos)`}</button>
+        <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+          <button onClick={onAddScene} style={{ background: C.surface, color: C.text, border: `1px solid ${C.borderBright}`, borderRadius: 10, padding: '9px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ Agregar escena</button>
+          <button onClick={onRunAll} disabled={running} style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, cursor: running ? 'wait' : 'pointer', opacity: running ? 0.6 : 1 }}>{running ? 'Ejecutando…' : `▶ Ejecutar todo (${nodes.length} nodos)`}</button>
+        </div>
       </div>
 
       {/* Lienzo */}
@@ -91,7 +96,8 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
             <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6 }}>
               <p style={{ margin: '0 0 8px' }}><b style={{ color: C.text }}>Guion:</b> {sel.scene.script}</p>
               <p style={{ margin: '0 0 8px', fontSize: 12 }}><b style={{ color: C.text }}>Escena:</b> {sel.scene.imagePrompt}</p>
-              <p style={{ margin: 0, fontSize: 12 }}><b style={{ color: C.text }}>Movimiento:</b> {sel.scene.videoPrompt}</p>
+              <p style={{ margin: '0 0 14px', fontSize: 12 }}><b style={{ color: C.text }}>Movimiento:</b> {sel.scene.videoPrompt}</p>
+              <button onClick={() => { onDeleteScene(sel.scene!.key); setSel(null); }} style={{ background: 'transparent', border: `1px solid ${C.red}`, color: C.red, borderRadius: 9, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>🗑 Borrar nodo</button>
             </div>
           )}
         </div>

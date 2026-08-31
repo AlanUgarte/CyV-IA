@@ -115,7 +115,7 @@ export class CreativeController {
 
   // ── Campaña UGC (agente planifica escenas tipo nodos) ───────────────────────
   @Post('ugc-campaign/plan') @HttpCode(HttpStatus.OK)
-  async ugcPlan(@Body() body: { product: ProductInfo }) { return this.svc.planUGCCampaign(body.product); }
+  async ugcPlan(@Body() body: { product: ProductInfo; creatorKey?: string }) { return this.svc.planUGCCampaign(body.product, body.creatorKey); }
 
   // Genera una escena de la campaña (imagen + video). Cuesta ugc_video_10.
   @Post('ugc-campaign/scene') @HttpCode(HttpStatus.OK)

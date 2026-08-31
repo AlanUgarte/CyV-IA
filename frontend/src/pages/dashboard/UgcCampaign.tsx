@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { C } from '../../styles/theme';
 import { creativeApi, type UgcScene, type Fmt } from '../../api/creative';
 import { workspaceApi } from '../../api/workspace';
@@ -28,11 +28,13 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
 
   const sceneCost = costs.ugc_video_10 ?? 10;
   const totalCost = plan ? plan.scenes.length * sceneCost : 0;
+  const [creatorKey, setCreatorKey] = useState<string | undefined>();
+  useEffect(() => { workspaceApi.getBrand().then(b => setCreatorKey(b?.data?.preferredCreator)).catch(() => {}); }, []);
 
   const doPlan = async () => {
     setErr(null); setPlanning(true);
     try {
-      const p = await creativeApi.ugcPlan({ product: { name: name || 'Producto' } });
+      const p = await creativeApi.ugcPlan({ product: { name: name || 'Producto' }, creatorKey });
       setPlan(p);
       setRuns(Object.fromEntries(p.scenes.map(s => [s.key, { status: 'idle' as SceneStatus }])));
     } catch { setErr('No se pudo planificar la campaña (¿IA configurada?).'); }
@@ -61,6 +63,19 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   const doneCount = Object.values(runs).filter(r => r.status === 'done').length;
   const [saved, setSaved] = useState(false);
   const [layout, setLayout] = useState<'list' | 'canvas'>('canvas');
+
+  const addScene = () => {
+    if (!plan) return;
+    const key = `extra_${Date.now()}`;
+    const scene: UgcScene = { key, title: 'Nueva escena', seconds: 8, role: 'Presentador', imagePrompt: `synthetic UGC person with the product ${name || ''}`, videoPrompt: 'natural UGC movement, person showing the product', script: '' };
+    setPlan({ ...plan, scenes: [...plan.scenes, scene] });
+    setRuns(r => ({ ...r, [key]: { status: 'idle' } }));
+  };
+  const deleteScene = (key: string) => {
+    if (!plan) return;
+    setPlan({ ...plan, scenes: plan.scenes.filter(s => s.key !== key) });
+    setRuns(r => { const c = { ...r }; delete c[key]; return c; });
+  };
 
   const saveProject = async () => {
     if (!plan) return;
@@ -113,7 +128,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
           </div>
 
           {layout === 'canvas' ? (
-            <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} />
+            <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} onAddScene={addScene} onDeleteScene={deleteScene} />
           ) : (
             <>
               <NodeCard emoji="🧑‍🎤" title={`Personaje — ${plan.creator}`} badges={['gpt-image-2']} status="done" note="Persona sintética consistente para todas las escenas" />
