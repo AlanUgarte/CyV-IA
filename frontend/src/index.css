@@ -115,3 +115,21 @@ code {
   .prod-grid { grid-template-columns: 1fr !important; }
   .studio-rail { display: none !important; }
 }
+
+/* ── Pulido premium global ─────────────────────────────────────────────────── */
+* { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+::selection { background: #7c5cfc44; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #22223a; border-radius: 8px; border: 2px solid #07070f; }
+::-webkit-scrollbar-thumb:hover { background: #2f2f4d; }
+
+/* Tarjeta premium reutilizable */
+.cv-card { background: linear-gradient(180deg,#12122099,#0f0f1a); border: 1px solid #1c1c2e; border-radius: 16px; transition: transform .18s cubic-bezier(.2,.8,.2,1), border-color .18s, box-shadow .18s; }
+.cv-card:hover { transform: translateY(-3px); border-color: #2b2b47; box-shadow: 0 12px 30px -12px #000a, 0 0 0 1px #7c5cfc22; }
+.cv-lift { transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s; }
+.cv-lift:hover { transform: translateY(-2px); }
+.cv-fade-in { animation: cvFade .4s ease both; }
+@keyframes cvFade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+.cv-thumb img, .cv-thumb video { transition: transform .35s ease; }
+.cv-thumb:hover img, .cv-thumb:hover video { transform: scale(1.06); }

@@ -17,50 +17,62 @@ import { aiApi } from '../../api/ai';
 import { creativeApi } from '../../api/creative';
 
 function HomeHero({ navigate }: { navigate: (p: string) => void }) {
+  const [thumbs, setThumbs] = useState<any[]>([]);
+  useEffect(() => { creativeApi.list().then(l => setThumbs(l.slice(0, 4))).catch(() => {}); }, []);
   return (
-    <div style={{ background: 'linear-gradient(120deg,#7c5cfc,#5b3ff0 55%,#4da6ff)', borderRadius: 20, padding: 'clamp(24px,4vw,40px)', marginBottom: 22, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 620 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.85)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }}>Conversia Studio</div>
-        <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(26px,4vw,40px)', color: '#fff', lineHeight: 1.05, margin: '0 0 12px' }}>Creá anuncios que venden, con IA</h1>
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,.85)', margin: '0 0 20px', lineHeight: 1.5 }}>Subí tu producto y obtené una campaña completa: imágenes, video UGC, copy y formatos para Meta. En minutos, sin diseñador.</p>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button onClick={() => navigate('/dashboard/creatives')} style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>+ Crear campaña</button>
-          <button onClick={() => navigate('/dashboard/projects')} style={{ background: 'rgba(255,255,255,.15)', color: '#fff', border: '1px solid rgba(255,255,255,.35)', borderRadius: 12, padding: '12px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Mis proyectos</button>
+    <div className="cv-fade-in" style={{ position: 'relative', borderRadius: 24, padding: 'clamp(28px,4vw,46px)', marginBottom: 26, overflow: 'hidden', background: 'radial-gradient(120% 140% at 0% 0%, #8b6bff 0%, #6b3ff0 42%, #3f2bb8 78%, #1a1440 100%)' }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 90% at 100% 0%, #4da6ff33, transparent 60%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.4, background: 'radial-gradient(circle at 1px 1px, #ffffff14 1px, transparent 0) 0 0/26px 26px', pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 600 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 1.5, textTransform: 'uppercase', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.22)', borderRadius: 999, padding: '5px 12px', marginBottom: 16, backdropFilter: 'blur(6px)' }}>✦ Conversia Studio</div>
+        <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(28px,4.4vw,46px)', color: '#fff', lineHeight: 1.03, letterSpacing: -0.5, margin: '0 0 14px' }}>Creá anuncios que venden,<br />con Inteligencia Artificial</h1>
+        <p style={{ fontSize: 15.5, color: 'rgba(255,255,255,.82)', margin: '0 0 24px', lineHeight: 1.55, maxWidth: 500 }}>Subí tu producto y obtené una campaña completa — imágenes, video UGC, copy y formatos para Meta — en minutos, sin diseñador.</p>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <button onClick={() => navigate('/dashboard/creatives')} className="cv-lift" style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 13, padding: '13px 24px', fontWeight: 800, fontSize: 14.5, cursor: 'pointer', boxShadow: '0 10px 24px -8px #0007' }}>+ Crear campaña</button>
+          <button onClick={() => navigate('/dashboard/projects')} className="cv-lift" style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.3)', borderRadius: 13, padding: '13px 22px', fontWeight: 700, fontSize: 14.5, cursor: 'pointer', backdropFilter: 'blur(6px)' }}>Mis proyectos</button>
         </div>
       </div>
-      {/* thumbnails decorativos (formas propias, sin contenido de terceros) */}
-      <div style={{ position: 'absolute', right: -20, top: 0, bottom: 0, display: 'flex', gap: 10, alignItems: 'center', opacity: 0.9 }} className="hero-thumbs">
-        {['#ffffff22', '#ffffff30', '#ffffff22', '#ffffff30'].map((bg, i) => (
-          <div key={i} style={{ width: 90, height: 150, borderRadius: 12, background: bg, transform: `translateY(${i % 2 ? 14 : -14}px)`, border: '1px solid rgba(255,255,255,.25)' }} />
-        ))}
+      {/* Vitrina: tus creativos flotando (o marcos vacíos elegantes) */}
+      <div style={{ position: 'absolute', right: 'clamp(-40px,-2vw,-10px)', top: '50%', transform: 'translateY(-50%)', display: 'flex', gap: 12, zIndex: 1 }} className="hero-thumbs">
+        {[0, 1, 2, 3].map(i => {
+          const it = thumbs[i];
+          return (
+            <div key={i} className="cv-thumb" style={{ width: 104, height: 176, borderRadius: 16, overflow: 'hidden', transform: `translateY(${i % 2 ? 18 : -18}px) rotate(${i % 2 ? 2 : -2}deg)`, border: '1px solid rgba(255,255,255,.28)', background: 'rgba(255,255,255,.1)', boxShadow: '0 16px 40px -16px #000a', backdropFilter: 'blur(2px)' }}>
+              {it?.video_url ? <video src={it.video_url} muted loop autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : it?.output_url ? <img src={it.output_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(160deg,#ffffff22,#ffffff08)' }} />}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 const TOOLS = [
-  { emoji: '🎬', name: 'Campaña UGC', desc: 'Video con persona IA usando tu producto', to: '/dashboard/creatives' },
-  { emoji: '🖼️', name: 'Anuncio de imagen', desc: 'Convertí tu producto en creativos publicitarios', to: '/dashboard/creatives' },
-  { emoji: '🎥', name: 'Video de producto', desc: 'Animá tu imagen en un reel', to: '/dashboard/creatives' },
-  { emoji: '🧑‍🎤', name: 'Avatares', desc: 'Elegí o subí tu creador virtual', to: '/dashboard/brand' },
-  { emoji: '✍️', name: 'Copy publicitario', desc: 'Hooks, títulos, descripciones y CTA', to: '/dashboard/creatives' },
-  { emoji: '🎨', name: 'Mi marca', desc: 'Productos, voces y kit de marca', to: '/dashboard/brand' },
-  { emoji: '🗂️', name: 'Proyectos', desc: 'Tus campañas guardadas', to: '/dashboard/projects' },
-  { emoji: '📊', name: 'Reportes', desc: 'Rendimiento de tus campañas', to: '/dashboard/reports' },
+  { emoji: '🎬', name: 'Campaña UGC', desc: 'Video con persona IA usando tu producto', to: '/dashboard/creatives', grad: 'linear-gradient(135deg,#7c5cfc,#4a2fd0)' },
+  { emoji: '🖼️', name: 'Anuncio de imagen', desc: 'Tu producto en creativos publicitarios', to: '/dashboard/creatives', grad: 'linear-gradient(135deg,#4da6ff,#2b6fd0)' },
+  { emoji: '🎥', name: 'Video de producto', desc: 'Animá tu imagen en un reel', to: '/dashboard/creatives', grad: 'linear-gradient(135deg,#ff6ea9,#c92e7a)' },
+  { emoji: '🧑‍🎤', name: 'Avatares', desc: 'Elegí o subí tu creador virtual', to: '/dashboard/brand', grad: 'linear-gradient(135deg,#00d68f,#00a06a)' },
+  { emoji: '✍️', name: 'Copy publicitario', desc: 'Hooks, títulos, descripciones y CTA', to: '/dashboard/creatives', grad: 'linear-gradient(135deg,#ffb347,#e6902a)' },
+  { emoji: '🎨', name: 'Mi marca', desc: 'Productos, voces y kit de marca', to: '/dashboard/brand', grad: 'linear-gradient(135deg,#a78bfa,#7c5cfc)' },
+  { emoji: '🗂️', name: 'Proyectos', desc: 'Tus campañas guardadas', to: '/dashboard/projects', grad: 'linear-gradient(135deg,#5eead4,#14b8a6)' },
+  { emoji: '📊', name: 'Reportes', desc: 'Rendimiento de tus campañas', to: '/dashboard/reports', grad: 'linear-gradient(135deg,#818cf8,#4f46e5)' },
 ];
 
 function HomeTools({ navigate }: { navigate: (p: string) => void }) {
   return (
-    <div style={{ marginBottom: 26 }}>
-      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Herramientas</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
+    <div style={{ marginBottom: 30 }}>
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginBottom: 16 }}>Herramientas</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 14 }}>
         {TOOLS.map(t => (
-          <button key={t.name} onClick={() => navigate(t.to)} style={{ textAlign: 'left', display: 'flex', gap: 12, alignItems: 'center', padding: 16, borderRadius: 14, cursor: 'pointer', background: '#0f0f1a', border: '1px solid #1c1c2e' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 11, background: '#16162a', display: 'grid', placeItems: 'center', fontSize: 20, flexShrink: 0 }}>{t.emoji}</div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#e8e8f4' }}>{t.name}</div>
-              <div style={{ fontSize: 12, color: '#666688', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.desc}</div>
+          <button key={t.name} onClick={() => navigate(t.to)} className="cv-card" style={{ textAlign: 'left', display: 'flex', gap: 14, alignItems: 'center', padding: 18, cursor: 'pointer', position: 'relative' }}>
+            <div style={{ width: 46, height: 46, borderRadius: 13, background: t.grad, display: 'grid', placeItems: 'center', fontSize: 22, flexShrink: 0, boxShadow: '0 8px 20px -8px #0009' }}>{t.emoji}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14.5, color: '#e8e8f4' }}>{t.name}</div>
+              <div style={{ fontSize: 12, color: '#666688', marginTop: 2 }}>{t.desc}</div>
             </div>
+            <span style={{ color: '#666688', fontSize: 16, opacity: 0.7 }}>→</span>
           </button>
         ))}
       </div>
@@ -72,21 +84,23 @@ function HomeGallery({ navigate }: { navigate: (p: string) => void }) {
   const [items, setItems] = useState<any[] | null>(null);
   useEffect(() => { creativeApi.list().then(setItems).catch(() => setItems([])); }, []);
   return (
-    <div style={{ marginBottom: 26 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17 }}>Tus creativos</div>
-        <button onClick={() => navigate('/dashboard/creatives')} style={{ background: 'transparent', border: '1px solid #1c1c2e', color: '#e8e8f4', borderRadius: 9, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Ver todos</button>
+    <div style={{ marginBottom: 30 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18 }}>Tus creativos</div>
+        <button onClick={() => navigate('/dashboard/creatives')} className="cv-lift" style={{ background: 'transparent', border: '1px solid #1c1c2e', color: '#e8e8f4', borderRadius: 10, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Ver todos →</button>
       </div>
       {items && items.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#666688', border: '1.5px dashed #1c1c2e', borderRadius: 14, background: '#0f0f1a' }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
-          Todavía no generaste creativos. <button onClick={() => navigate('/dashboard/creatives')} style={{ background: 'none', border: 'none', color: '#7c5cfc', cursor: 'pointer', fontWeight: 600 }}>Creá el primero</button>.
+        <div className="cv-card" style={{ padding: 52, textAlign: 'center', color: '#666688' }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>✨</div>
+          <div style={{ color: '#e8e8f4', fontWeight: 700, marginBottom: 4 }}>Tu galería está vacía</div>
+          <div style={{ fontSize: 14, marginBottom: 16 }}>Generá tu primera campaña y empezá a crear contenido que vende.</div>
+          <button onClick={() => navigate('/dashboard/creatives')} className="cv-lift" style={{ background: 'linear-gradient(135deg,#7c5cfc,#4da6ff)', color: '#fff', border: 'none', borderRadius: 11, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>+ Crear campaña</button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(158px,1fr))', gap: 14 }}>
           {(items ?? []).slice(0, 12).map(it => (
-            <div key={it.id} onClick={() => navigate('/dashboard/creatives')} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #1c1c2e', background: '#0f0f1a', cursor: 'pointer' }}>
-              <div style={{ aspectRatio: '3/4', background: '#16162a' }}>
+            <div key={it.id} onClick={() => navigate('/dashboard/creatives')} className="cv-card cv-thumb" style={{ overflow: 'hidden', cursor: 'pointer', padding: 0 }}>
+              <div style={{ aspectRatio: '3/4', background: '#16162a', overflow: 'hidden' }}>
                 {it.video_url ? <video src={it.video_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : it.output_url ? <img src={it.output_url} alt={it.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#333355' }}>🎨</div>}
