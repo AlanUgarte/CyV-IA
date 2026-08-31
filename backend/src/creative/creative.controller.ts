@@ -126,6 +126,10 @@ export class CreativeController {
     return { ...(result as any), credits, creditsUsed };
   }
 
+  // Texto a voz (TTS real). Gratis.
+  @Post('tts') @HttpCode(HttpStatus.OK)
+  async tts(@Body() body: { text: string; voice?: string }) { return this.svc.generateVoice(body.text, body.voice); }
+
   @Post(':id/favorite') @HttpCode(HttpStatus.OK)
   async favorite(@Param('id') id: string, @Request() req: any) { return this.svc.toggleFavorite(id, req.user.id); }
 

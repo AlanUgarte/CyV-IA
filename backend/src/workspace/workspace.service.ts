@@ -50,8 +50,11 @@ export class WorkspaceService {
     const { rows } = await this.db.query('SELECT brand_name, logo_url, primary_color, data FROM brand_profiles WHERE user_id=$1', [userId]);
     return rows[0] ?? { brand_name: null, logo_url: null, primary_color: null, data: {} };
   }
-  async saveBrand(userId: string, dto: { brandName?: string; logo?: string; primaryColor?: string; data?: any }) {
+  async saveBrand(userId: string, dto: { brandName?: string; logo?: string; primaryColor?: string; avatar?: string; data?: any }) {
     const logo = dto.logo?.startsWith('data:') ? await this.persist(dto.logo) : (dto.logo ?? null);
+    // Avatar propio (foto): se persiste y se guarda su URL dentro de data.avatarUrl
+    let data = dto.data ?? {};
+    if (dto.avatar?.startsWith('data:')) { const url = await this.persist(dto.avatar); data = { ...data, avatarUrl: url }; }
     const { rows } = await this.db.query(
       `INSERT INTO brand_profiles (user_id, brand_name, logo_url, primary_color, data, updated_at)
        VALUES ($1,$2,$3,$4,$5,NOW())
@@ -61,7 +64,7 @@ export class WorkspaceService {
          primary_color=COALESCE(EXCLUDED.primary_color, brand_profiles.primary_color),
          data=EXCLUDED.data, updated_at=NOW()
        RETURNING brand_name, logo_url, primary_color, data`,
-      [userId, dto.brandName ?? null, logo, dto.primaryColor ?? null, JSON.stringify(dto.data ?? {})]);
+      [userId, dto.brandName ?? null, logo, dto.primaryColor ?? null, JSON.stringify(data)]);
     return rows[0];
   }
 

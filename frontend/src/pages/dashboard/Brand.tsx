@@ -171,18 +171,34 @@ function Kit({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => void }
 function Avatars({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => void }) {
   const [creators, setCreators] = useState<any[] | null>(null);
   const [sel, setSel] = useState<string | undefined>(brand.data?.preferredCreator);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(brand.data?.avatarUrl);
   const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => { creativeApi.creators().then(r => setCreators(r.creators)).catch(() => setCreators([])); }, []);
   const pick = async (key: string) => {
     setSel(key); setBusy(true);
     try { const b = await workspaceApi.saveBrand({ data: { ...(brand.data || {}), preferredCreator: key } }); onSaved(b); } finally { setBusy(false); }
   };
+  const uploadAvatar = async (file: File) => {
+    setBusy(true);
+    try { const b = await workspaceApi.saveBrand({ avatar: await toBase64(file), data: { ...(brand.data || {}), preferredCreator: 'custom' } }); onSaved(b); setAvatarUrl(b.data?.avatarUrl); setSel('custom'); } finally { setBusy(false); }
+  };
   if (!creators) return <Spinner size={22} />;
   return (
     <div>
       <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 4px' }}>Avatares (creadores IA)</h3>
-      <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 16px' }}>Personas 100% sintéticas para tus videos UGC. Elegí el creador preferido — la Campaña UGC lo usa por defecto.{busy && ' · guardando…'}</p>
+      <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 16px' }}>Personas sintéticas para tus videos UGC, o subí tu propio avatar. La Campaña UGC usa el elegido.{busy && ' · guardando…'}</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+        {/* Mi avatar (foto propia) */}
+        <div style={{ padding: 16, borderRadius: 14, background: sel === 'custom' ? C.accentDim : C.surface, border: `2px solid ${sel === 'custom' ? C.accent : C.border}` }}>
+          <div onClick={() => avatarUrl ? pick('custom') : fileRef.current?.click()} style={{ width: 60, height: 60, borderRadius: 12, background: C.surface2, display: 'grid', placeItems: 'center', cursor: 'pointer', overflow: 'hidden', marginBottom: 8 }}>
+            {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 26 }}>➕</span>}
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>Mi avatar {sel === 'custom' && <span style={{ color: C.accent }}>✓</span>}</div>
+          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3 }}>Tu propia foto</div>
+          <button onClick={() => fileRef.current?.click()} style={{ ...btnP, padding: '5px 10px', fontSize: 12, marginTop: 8 }}>{avatarUrl ? 'Cambiar' : 'Subir'}</button>
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }} />
+        </div>
         {creators.map(c => {
           const on = sel === c.key;
           return (
@@ -202,22 +218,34 @@ function Avatars({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => vo
 function Voices({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => void }) {
   const [sel, setSel] = useState<string | undefined>(brand.data?.voice);
   const [busy, setBusy] = useState(false);
+  const [playing, setPlaying] = useState<string | null>(null);
   const pick = async (key: string) => {
     setSel(key); setBusy(true);
     try { const b = await workspaceApi.saveBrand({ data: { ...(brand.data || {}), voice: key } }); onSaved(b); } finally { setBusy(false); }
+  };
+  const play = async (key: string) => {
+    setPlaying(key);
+    try {
+      const { audioUrl } = await creativeApi.tts('Hola! Esto es una muestra de la voz para tus anuncios con IA.', key);
+      const a = new Audio(audioUrl); a.onended = () => setPlaying(null); await a.play();
+    } catch { setPlaying(null); alert('La voz necesita OpenAI configurado.'); }
   };
   return (
     <div>
       <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 4px' }}>Voces</h3>
       <p style={{ color: C.textMuted, fontSize: 13, margin: '0 0 16px' }}>Elegí el estilo de voz para la narración de tus videos.{busy && ' · guardando…'}</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
         {VOICES.map(v => {
           const on = sel === v.key;
           return (
-            <button key={v.key} onClick={() => pick(v.key)} style={{ textAlign: 'left', padding: 16, borderRadius: 14, cursor: 'pointer', background: on ? C.accentDim : C.surface, border: `2px solid ${on ? C.accent : C.border}` }}>
+            <div key={v.key} style={{ padding: 16, borderRadius: 14, background: on ? C.accentDim : C.surface, border: `2px solid ${on ? C.accent : C.border}` }}>
               <div style={{ fontSize: 24, marginBottom: 8 }}>{v.emoji}</div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>{v.label} {on && <span style={{ color: C.accent }}>✓</span>}</div>
-            </button>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{v.label} {on && <span style={{ color: C.accent }}>✓</span>}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => pick(v.key)} style={{ ...btnP, padding: '6px 12px', fontSize: 12, flex: 1 }}>{on ? 'Elegida' : 'Elegir'}</button>
+                <button onClick={() => play(v.key)} disabled={playing === v.key} style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.text, borderRadius: 9, padding: '6px 10px', fontSize: 12, cursor: 'pointer' }}>{playing === v.key ? '♪…' : '▶'}</button>
+              </div>
+            </div>
           );
         })}
       </div>

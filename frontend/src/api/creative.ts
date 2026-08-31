@@ -51,6 +51,7 @@ export const creativeApi = {
   ugcScene: (body: { product: ProductInfo; scene: UgcScene; referenceImage?: string; format?: Fmt }) =>
     D<{ imageUrl: string; videoUrl: string; sceneKey: string; credits: number; creditsUsed: number }>(api.post('/creative/ugc-campaign/scene', body, { timeout: 200_000, ...idem() })),
 
+  tts: (text: string, voice?: string) => D<{ audioUrl: string }>(api.post('/creative/tts', { text, voice }, { timeout: 60_000 })),
   favorite: (id: string) => D<{ is_favorite: boolean }>(api.post(`/creative/${id}/favorite`, {})),
   save: (body: any) => D<any>(api.post('/creative', body)),
   list: () => D<any[]>(api.get('/creative')),

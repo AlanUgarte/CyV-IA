@@ -29,7 +29,8 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   const sceneCost = costs.ugc_video_10 ?? 10;
   const totalCost = plan ? plan.scenes.length * sceneCost : 0;
   const [creatorKey, setCreatorKey] = useState<string | undefined>();
-  useEffect(() => { workspaceApi.getBrand().then(b => setCreatorKey(b?.data?.preferredCreator)).catch(() => {}); }, []);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
+  useEffect(() => { workspaceApi.getBrand().then(b => { setCreatorKey(b?.data?.preferredCreator); setAvatarUrl(b?.data?.avatarUrl); }).catch(() => {}); }, []);
 
   const doPlan = async () => {
     setErr(null); setPlanning(true);
@@ -48,7 +49,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
     for (const scene of plan.scenes) {
       setRuns(r => ({ ...r, [scene.key]: { ...r[scene.key], status: 'running' } }));
       try {
-        const res = await creativeApi.ugcScene({ product: { name: name || 'Producto' }, scene, referenceImage: imageBase64, format });
+        const res = await creativeApi.ugcScene({ product: { name: name || 'Producto' }, scene, referenceImage: avatarUrl || imageBase64, format });
         setCredits(res.credits);
         setRuns(r => ({ ...r, [scene.key]: { status: 'done', imageUrl: res.imageUrl, videoUrl: res.videoUrl } }));
       } catch (e: any) {

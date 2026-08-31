@@ -15,7 +15,7 @@ export const workspaceApi = {
   stats: () => D<{ projects: number; products: number; credits_used: number }>(api.get('/projects/stats')),
   // Marca
   getBrand: () => D<Brand>(api.get('/brand')),
-  saveBrand: (body: { brandName?: string; logo?: string; primaryColor?: string; data?: any }) => D<Brand>(api.put('/brand', body, { timeout: 60_000 })),
+  saveBrand: (body: { brandName?: string; logo?: string; primaryColor?: string; avatar?: string; data?: any }) => D<Brand>(api.put('/brand', body, { timeout: 60_000 })),
   listProducts: () => D<BrandProduct[]>(api.get('/brand/products')),
   addProduct: (body: { name: string; image?: string; description?: string; price?: string; url?: string; category?: string }) => D<BrandProduct>(api.post('/brand/products', body, { timeout: 60_000 })),
   removeProduct: (id: string) => D<any>(api.delete(`/brand/products/${id}`)),

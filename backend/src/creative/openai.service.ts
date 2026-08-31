@@ -84,6 +84,24 @@ export class OpenaiService {
     }
   }
 
+  // ── Texto a voz (TTS real) ──────────────────────────────────────────────────
+  // Presets de la app → voces de OpenAI
+  private static VOICE_MAP: Record<string, string> = {
+    fem_natural: 'nova', fem_energetica: 'shimmer', masc_natural: 'onyx', masc_pro: 'echo', joven: 'alloy',
+  };
+  async speech(text: string, voiceKey = 'fem_natural'): Promise<string> {
+    const model = process.env.OPENAI_TTS_MODEL ?? 'gpt-4o-mini-tts';
+    const voice = OpenaiService.VOICE_MAP[voiceKey] ?? 'nova';
+    const res = await axios.post('https://api.openai.com/v1/audio/speech', {
+      model, voice, input: text.slice(0, 4000), response_format: 'mp3',
+    }, {
+      headers: { Authorization: `Bearer ${this.key()}`, 'Content-Type': 'application/json' },
+      responseType: 'arraybuffer', timeout: 60_000,
+    });
+    const b64 = Buffer.from(res.data as ArrayBuffer).toString('base64');
+    return `data:audio/mpeg;base64,${b64}`;
+  }
+
   // ── Generación de imagen (gpt-image-1) ──────────────────────────────────────
   private static readonly SIZE: Record<Fmt, string> = { '9:16': '1024x1536', '4:5': '1024x1536', '1:1': '1024x1024' };
 

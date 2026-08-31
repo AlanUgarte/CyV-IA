@@ -218,6 +218,13 @@ JSON: { "creator": "${creator}", "scenes": [ {"key":"hook",...}, {"key":"message
     return { imageUrl, videoUrl: vid.url, model: vid.model, seconds: vid.seconds, sceneKey: input.scene.key };
   }
 
+  // ── Voz (TTS real) ───────────────────────────────────────────────────────────
+  async generateVoice(text: string, voiceKey?: string): Promise<{ audioUrl: string }> {
+    const dataUrl = await this.openai.speech(text || 'Hola, esto es una muestra de voz.', voiceKey);
+    const audioUrl = await this.persist(dataUrl, 'image'); // persist genérico (mp3)
+    return { audioUrl };
+  }
+
   // ── Favoritos ────────────────────────────────────────────────────────────────
   async toggleFavorite(id: string, userId: string) {
     const { rows } = await this.db.query(
@@ -245,8 +252,9 @@ JSON: [ { "key": "conversion", "title": "", "body": "", "cta": "", "description"
       const m = dataUrl.match(/^data:(.+?);base64,(.*)$/);
       if (!m) return dataUrl; // ya es URL
       const buffer = Buffer.from(m[2], 'base64');
-      const ext = m[1].includes('png') ? 'png' : m[1].includes('mp4') ? 'mp4' : 'jpg';
-      const saved = await this.storage.save(buffer, `creative_${Date.now()}.${ext}`, m[1]);
+      const mime = m[1];
+      const ext = mime.includes('png') ? 'png' : mime.includes('mp4') ? 'mp4' : (mime.includes('mpeg') || mime.includes('mp3')) ? 'mp3' : (mime.includes('wav') ? 'wav' : 'jpg');
+      const saved = await this.storage.save(buffer, `creative_${Date.now()}.${ext}`, mime);
       return saved.url;
     } catch (e: any) {
       this.logger.warn(`persist falló (${e.message}) — devuelvo data URL`);

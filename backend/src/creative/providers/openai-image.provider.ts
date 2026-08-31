@@ -27,10 +27,15 @@ export class OpenAIImageProvider implements ImageProvider {
     const quality = input.quality === 'premium' ? 'high' : 'medium';
     const headers = { Authorization: `Bearer ${this.key()}` };
 
-    // Con foto de referencia → images/edits (preserva packaging/logo/forma)
+    // Con foto de referencia → images/edits (preserva packaging/logo/forma o el avatar)
     if (input.referenceImage) {
       try {
-        const b64 = input.referenceImage.replace(/^data:image\/\w+;base64,/, '');
+        let ref = input.referenceImage;
+        if (/^https?:\/\//.test(ref)) {
+          const dl = await axios.get(ref, { responseType: 'arraybuffer', timeout: 30_000 });
+          ref = `data:image/png;base64,${Buffer.from(dl.data as ArrayBuffer).toString('base64')}`;
+        }
+        const b64 = ref.replace(/^data:image\/\w+;base64,/, '');
         const form = new FormData();
         form.append('image', new Blob([Buffer.from(b64, 'base64')], { type: 'image/png' }), 'product.png');
         form.append('model', model);
