@@ -66,7 +66,7 @@ export default function Brand() {
       {tab === 'kit' && <Kit brand={brand} onSaved={setBrand} />}
       {tab === 'avatars' && <Avatars brand={brand} onSaved={setBrand} />}
       {tab === 'voices' && <Voices brand={brand} onSaved={setBrand} />}
-      {tab === 'assets' && <Empty emoji="🗂️" title="Biblioteca de activos" text="Tus imágenes y videos generados se guardan en Creativos IA → Mis creativos." />}
+      {tab === 'assets' && <Assets />}
     </div>
   );
 }
@@ -248,6 +248,30 @@ function Voices({ brand, onSaved }: { brand: BrandT; onSaved: (b: BrandT) => voi
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function Assets() {
+  const [items, setItems] = useState<any[] | null>(null);
+  useEffect(() => { creativeApi.list().then(setItems).catch(() => setItems([])); }, []);
+  if (!items) return <Spinner size={22} />;
+  if (!items.length) return <Empty emoji="🗂️" title="Biblioteca de activos" text="Tus imágenes y videos generados aparecerán acá. Creá tu primer creativo en Creativos IA." />;
+  return (
+    <div>
+      <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 14px' }}>Biblioteca de activos <span style={{ color: C.textMuted, fontWeight: 400 }}>· {items.length}</span></h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
+        {items.map(it => (
+          <div key={it.id} style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.border}`, background: C.surface }}>
+            <div style={{ aspectRatio: '3/4', background: C.surface2 }}>
+              {it.video_url ? <video src={it.video_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : it.output_url ? <img src={it.output_url} alt={it.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: C.textDim }}>🎨</div>}
+            </div>
+            <div style={{ padding: 10, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

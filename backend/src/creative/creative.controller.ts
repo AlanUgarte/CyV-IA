@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Body, Param, Request, UseGuards, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreativeService, ProductInfo } from './creative.service';
@@ -63,6 +64,7 @@ export class CreativeController {
 
   // PASO 4 — 3 variantes
   @Post('images') @HttpCode(HttpStatus.OK)
+  @Throttle({ medium: { limit: 15, ttl: 60000 } })
   async images(@Body() body: { product: ProductInfo; objective: string; style: string; format: Fmt; quality?: 'standard' | 'premium'; referenceImage?: string }, @Request() req: any) {
     const op: CreditOperation = body.quality === 'premium' ? 'image_premium' : 'image_standard';
     const amount = CREDIT_COSTS[op] * 3;
@@ -82,6 +84,7 @@ export class CreativeController {
 
   // PASO 5 — video
   @Post('video') @HttpCode(HttpStatus.OK)
+  @Throttle({ medium: { limit: 10, ttl: 60000 } })
   async video(@Body() body: { imageBase64: string; product: ProductInfo; style: string; duration: '5' | '10' }, @Request() req: any) {
     const seconds = body.duration === '10' ? 10 : 5;
     const op: CreditOperation = seconds === 10 ? 'video_10' : 'video_5';
@@ -106,6 +109,7 @@ export class CreativeController {
 
   // Genera UGC (imagen persona sintética + video). Cuesta ugc_video_10.
   @Post('ugc') @HttpCode(HttpStatus.OK)
+  @Throttle({ medium: { limit: 8, ttl: 60000 } })
   async ugc(@Body() body: any, @Request() req: any) {
     const { result, credits, creditsUsed } = await this.billed(req,
       { operation: 'ugc_video_10', amount: CREDIT_COSTS.ugc_video_10, provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds: 10 },
@@ -119,6 +123,7 @@ export class CreativeController {
 
   // Genera una escena de la campaña (imagen + video). Cuesta ugc_video_10.
   @Post('ugc-campaign/scene') @HttpCode(HttpStatus.OK)
+  @Throttle({ medium: { limit: 12, ttl: 60000 } })
   async ugcScene(@Body() body: any, @Request() req: any) {
     const { result, credits, creditsUsed } = await this.billed(req,
       { operation: 'ugc_video_10', amount: CREDIT_COSTS.ugc_video_10, provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds: 10 },
@@ -132,6 +137,7 @@ export class CreativeController {
 
   // Ensamblar el video final de la campaña (une las escenas). Gratis (solo cómputo).
   @Post('ugc-campaign/assemble') @HttpCode(HttpStatus.OK)
+  @Throttle({ medium: { limit: 6, ttl: 60000 } })
   async assemble(@Body() body: { videoUrls: string[]; musicUrl?: string }) { return this.svc.assembleFinalVideo(body.videoUrls, body.musicUrl); }
 
   @Post(':id/favorite') @HttpCode(HttpStatus.OK)
