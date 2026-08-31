@@ -133,3 +133,4 @@ code {
 @keyframes cvFade { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
 .cv-thumb img, .cv-thumb video { transition: transform .35s ease; }
 .cv-thumb:hover img, .cv-thumb:hover video { transform: scale(1.06); }
+@media (max-width: 900px) { .canvas-copilot { flex-direction: column !important; } .copilot-panel { width: 100% !important; height: 420px !important; } }

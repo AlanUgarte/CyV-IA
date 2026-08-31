@@ -32,13 +32,24 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
   useEffect(() => { workspaceApi.getBrand().then(b => { setCreatorKey(b?.data?.preferredCreator); setAvatarUrl(b?.data?.avatarUrl); }).catch(() => {}); }, []);
 
-  const doPlan = async () => {
+  // ── Copiloto (chat que planifica y ejecuta) ────────────────────────────────
+  const [messages, setMessages] = useState<{ role: 'user' | 'copilot'; text: string }[]>([
+    { role: 'copilot', text: '¡Hola! Soy tu copiloto creativo. Contame qué producto querés promocionar y armo la campaña UGC en 4 escenas.' },
+  ]);
+  const pushMsg = (role: 'user' | 'copilot', text: string) => setMessages(m => [...m, { role, text }]);
+
+  const doPlan = async (overrideName?: string) => {
+    const pName = (overrideName ?? name) || 'Producto';
     setErr(null); setPlanning(true);
+    pushMsg('user', `Creá una campaña UGC de ${pName}.`);
+    pushMsg('copilot', 'Analizando el producto y planificando las escenas…');
     try {
-      const p = await creativeApi.ugcPlan({ product: { name: name || 'Producto' }, creatorKey });
+      const p = await creativeApi.ugcPlan({ product: { name: pName }, creatorKey });
       setPlan(p);
       setRuns(Object.fromEntries(p.scenes.map(s => [s.key, { status: 'idle' as SceneStatus }])));
-    } catch { setErr('No se pudo planificar la campaña (¿IA configurada?).'); }
+      pushMsg('copilot', `Listo. Armé una campaña con ${p.scenes.length} escenas (Gancho → Mensaje → Se construye → CTA), protagonizada por ${p.creator}. Cada escena es una imagen de la persona con el producto → video con Seedance.`);
+      pushMsg('copilot', `▶ Listo para ejecutar ${p.scenes.length + 2} nodos. Apretá "Generar" cuando quieras.`);
+    } catch { setErr('No se pudo planificar la campaña (¿IA configurada?).'); pushMsg('copilot', 'No pude planificar — falta configurar la IA (OpenAI).'); }
     finally { setPlanning(false); }
   };
 
@@ -46,18 +57,24 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
     if (!plan) return;
     if (!window.confirm(`Generar la campaña completa usará ${totalCost} créditos (${plan.scenes.length} escenas × ${sceneCost}). Tenés ${credits}. ¿Continuar?`)) return;
     setRunning(true); setErr(null);
-    for (const scene of plan.scenes) {
+    pushMsg('copilot', `Generando la campaña — ${plan.scenes.length} escenas con Seedance. Te aviso escena por escena…`);
+    for (let i = 0; i < plan.scenes.length; i++) {
+      const scene = plan.scenes[i];
       setRuns(r => ({ ...r, [scene.key]: { ...r[scene.key], status: 'running' } }));
       try {
         const res = await creativeApi.ugcScene({ product: { name: name || 'Producto' }, scene, referenceImage: avatarUrl || imageBase64, format });
         setCredits(res.credits);
         setRuns(r => ({ ...r, [scene.key]: { status: 'done', imageUrl: res.imageUrl, videoUrl: res.videoUrl } }));
+        pushMsg('copilot', `✓ Escena ${i + 1} (${scene.title}) lista.`);
       } catch (e: any) {
         setRuns(r => ({ ...r, [scene.key]: { ...r[scene.key], status: 'error' } }));
-        setErr(e?.response?.data?.message === 'SIN_CREDITOS' ? 'Te quedaste sin créditos.' : 'Una escena falló (no se descontaron créditos de esa escena).');
+        const sc = e?.response?.data?.message === 'SIN_CREDITOS';
+        setErr(sc ? 'Te quedaste sin créditos.' : 'Una escena falló (no se descontaron créditos de esa escena).');
+        pushMsg('copilot', sc ? '🪫 Te quedaste sin créditos. Recargá para seguir.' : `La escena ${i + 1} falló (no se descontaron créditos). Podés reintentar.`);
         break;
       }
     }
+    if (Object.values(runs).every(r => r.status !== 'error')) pushMsg('copilot', '🎬 Escenas listas. Podés "Ensamblar video final" y guardar la campaña como proyecto.');
     setRunning(false);
   };
 
@@ -141,7 +158,12 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
           </div>
 
           {layout === 'canvas' ? (
-            <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
+            <div style={{ display: 'flex', gap: 14, alignItems: 'stretch' }} className="canvas-copilot">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
+              </div>
+              <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={(t) => { setName(t); doPlan(t); }} />
+            </div>
           ) : (
             <>
               <NodeCard emoji="🧑‍🎤" title={`Personaje — ${plan.creator}`} badges={['gpt-image-2']} status="done" note="Persona sintética consistente para todas las escenas" />
@@ -163,6 +185,38 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
         </>
       )}
     </div>
+  );
+}
+
+function CopilotPanel({ messages, running, planned, onGenerate, onSend }: { messages: { role: 'user' | 'copilot'; text: string }[]; running: boolean; planned: boolean; onGenerate: () => void; onSend: (t: string) => void }) {
+  const [text, setText] = useState('');
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  const send = () => { const t = text.trim(); if (!t) return; setText(''); onSend(t); };
+  return (
+    <aside className="cv-card copilot-panel" style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: 0, height: 'calc(100vh - 210px)', minHeight: 420 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ width: 26, height: 26, borderRadius: 8, background: C.grad, display: 'grid', placeItems: 'center', fontSize: 14 }}>✨</div>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>Copiloto</div>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: C.textMuted }}>{running ? 'trabajando…' : 'en línea'}</span>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', background: m.role === 'user' ? C.accent : C.surface2, color: m.role === 'user' ? '#fff' : C.text, borderRadius: 12, padding: '9px 12px', fontSize: 13, lineHeight: 1.5, border: m.role === 'user' ? 'none' : `1px solid ${C.border}` }}>{m.text}</div>
+        ))}
+        {running && <div style={{ alignSelf: 'flex-start', color: C.textMuted, fontSize: 13, padding: '4px 8px' }}>● ● ●</div>}
+        <div ref={endRef} />
+      </div>
+      {planned && (
+        <div style={{ padding: '10px 14px', borderTop: `1px solid ${C.border}` }}>
+          <button onClick={onGenerate} disabled={running} style={{ width: '100%', background: C.grad, color: '#fff', border: 'none', borderRadius: 11, padding: '11px', fontWeight: 700, fontSize: 14, cursor: running ? 'wait' : 'pointer', opacity: running ? 0.6 : 1 }}>{running ? 'Generando…' : '▶ Generar campaña'}</button>
+        </div>
+      )}
+      <div style={{ padding: 12, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Describí tu campaña o producto…" style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', color: C.text, fontSize: 13, outline: 'none' }} />
+        <button onClick={send} disabled={running || !text.trim()} style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '0 14px', fontWeight: 700, cursor: 'pointer', opacity: running || !text.trim() ? 0.5 : 1 }}>↑</button>
+      </div>
+    </aside>
   );
 }
 
