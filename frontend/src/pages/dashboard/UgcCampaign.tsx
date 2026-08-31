@@ -38,8 +38,23 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
   ]);
   const pushMsg = (role: 'user' | 'copilot', text: string) => setMessages(m => [...m, { role, text }]);
 
+  // El agente pregunta antes de generar (duración)
+  const [askDur, setAskDur] = useState(false);
+  const [brief, setBrief] = useState('');
+  const startCampaign = (b?: string) => { const v = b ?? name; if (v) setName(v); setBrief(v || 'Producto'); setAskDur(true); };
+  const DURATIONS = [
+    { key: '20', label: '15–20 s', sub: 'Rápido y directo — ideal para Reels y TikTok', rec: true },
+    { key: '30', label: '25–30 s', sub: 'Espacio para mostrar el producto y contar más' },
+    { key: '40', label: '35–40 s', sub: 'Mini-historia completa con más detalle' },
+  ];
+  const pickDuration = (d: { key: string; label: string }) => {
+    setAskDur(false);
+    pushMsg('user', `Duración: ${d.label}`);
+    doPlan(brief);
+  };
+
   const doPlan = async (overrideName?: string) => {
-    const pName = (overrideName ?? name) || 'Producto';
+    const pName = (overrideName ?? brief ?? name) || 'Producto';
     setErr(null); setPlanning(true);
     pushMsg('user', `Creá una campaña UGC de ${pName}.`);
     pushMsg('copilot', 'Analizando el producto y planificando las escenas…');
@@ -136,8 +151,29 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
           <span style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 5 }}>Producto</span>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Papas GoodShow Cheddar" style={{ width: '100%', background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', color: C.text, fontSize: 14, outline: 'none' }} />
         </label>
-        <Btn onClick={doPlan} disabled={planning || (!name && !imageBase64)}>{planning ? 'Planeando…' : plan ? 'Replanificar' : '🤖 Planificar campaña'}</Btn>
+        <Btn onClick={() => startCampaign()} disabled={planning || (!name && !imageBase64)}>{planning ? 'Planeando…' : plan ? 'Replanificar' : '🤖 Planificar campaña'}</Btn>
       </div>
+
+      {askDur && (
+        <div style={{ background: C.surface, border: `1px solid ${C.borderBright}`, borderRadius: 16, padding: 18, marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 7, background: C.grad, display: 'grid', placeItems: 'center', fontSize: 13 }}>✨</div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>¿Cuánto debe durar el video UGC?</div>
+          </div>
+          <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+            {DURATIONS.map(d => (
+              <button key={d.key} onClick={() => pickDuration(d)} className="cv-lift" style={{ textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 11, cursor: 'pointer', background: d.rec ? C.accentDim : C.surface2, border: `1.5px solid ${d.rec ? C.accent : C.border}` }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{d.label} {d.rec && <span style={{ color: C.accent, fontSize: 11 }}>· Recomendado</span>}</div>
+                  <div style={{ fontSize: 12, color: C.textMuted }}>{d.sub}</div>
+                </div>
+                <span style={{ color: C.textMuted }}>→</span>
+              </button>
+            ))}
+          </div>
+          <button onClick={() => setAskDur(false)} style={{ marginTop: 10, background: 'transparent', border: 'none', color: C.textMuted, cursor: 'pointer', fontSize: 12 }}>Cancelar</button>
+        </div>
+      )}
 
       {err && <div style={{ background: C.redDim, border: `1px solid ${C.red}`, color: C.red, borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>⚠️ {err}</div>}
 
@@ -162,7 +198,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
               <div style={{ flex: 1, minWidth: 0 }}>
                 <CampaignCanvas plan={plan} runs={runs} running={running} onRunAll={runAll} totalCost={totalCost} onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
               </div>
-              <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={(t) => { setName(t); doPlan(t); }} />
+              <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={(t) => startCampaign(t)} />
             </div>
           ) : (
             <>

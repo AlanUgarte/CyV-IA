@@ -79,7 +79,7 @@ const EMPTY: StudioState = { product: { name: '' }, objective: 'vender', style: 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AICreativeStudio() {
   const nav = useNavigate();
-  const [view, setView] = useState<'studio' | 'campaign' | 'history'>('studio');
+  const [view, setView] = useState<'launcher' | 'studio' | 'campaign' | 'history'>('launcher');
   const [step, setStep] = useState(1);
   const [s, setS] = useState<StudioState>(EMPTY);
   const patch = (p: Partial<StudioState>) => setS(prev => ({ ...prev, ...p }));
@@ -181,7 +181,9 @@ export default function AICreativeStudio() {
     <div style={{ minHeight: '100%', background: C.bg, color: C.text }}>
       <Header credits={credits} view={view} setView={setView} onNew={() => { reset(); setView('studio'); }} />
 
-      {view === 'campaign' ? (
+      {view === 'launcher' ? (
+        <Launcher setView={setView} />
+      ) : view === 'campaign' ? (
         <UgcCampaign costs={costs} credits={credits} setCredits={setCredits} />
       ) : view === 'history' ? (
         <History />
@@ -251,9 +253,35 @@ export default function AICreativeStudio() {
   );
 }
 
+// ── Launcher (inicio de la sección) ──────────────────────────────────────────
+function Launcher({ setView }: { setView: (v: 'launcher' | 'studio' | 'campaign' | 'history') => void }) {
+  const MODES = [
+    { key: 'campaign' as const, emoji: '🎬', title: 'Campaña UGC con Copiloto', desc: 'El agente planifica y arma los nodos (Gancho → Mensaje → CTA), los ejecutás en el canvas y ensamblás el video final.', tag: 'Nodos + IA', grad: 'linear-gradient(135deg,#7c5cfc,#4a2fd0)' },
+    { key: 'studio' as const, emoji: '✨', title: 'Studio por pasos', desc: 'Un asistente guiado: producto → objetivo → estilo → imagen → video → copy → resultado.', tag: 'Wizard', grad: 'linear-gradient(135deg,#4da6ff,#2b6fd0)' },
+    { key: 'history' as const, emoji: '🗂️', title: 'Mis creativos', desc: 'Tu biblioteca de imágenes y videos generados, con filtros y favoritos.', tag: 'Biblioteca', grad: 'linear-gradient(135deg,#00d68f,#00a06a)' },
+  ];
+  return (
+    <div style={{ padding: '32px clamp(16px,3vw,44px)', maxWidth: 1100, margin: '0 auto' }}>
+      <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(24px,3vw,32px)', margin: '0 0 6px' }}>¿Qué querés crear hoy?</h1>
+      <p style={{ color: C.textMuted, fontSize: 15, margin: '0 0 28px' }}>Elegí cómo trabajar. La IA hace el trabajo pesado; vos elegís y ajustás.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
+        {MODES.map(m => (
+          <button key={m.key} onClick={() => setView(m.key)} className="cv-card" style={{ textAlign: 'left', padding: 22, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12, minHeight: 200 }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, background: m.grad, display: 'grid', placeItems: 'center', fontSize: 26, boxShadow: '0 10px 24px -10px #000a' }}>{m.emoji}</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontWeight: 700, color: C.accent, background: C.accentDim, borderRadius: 999, padding: '3px 10px', width: 'fit-content', textTransform: 'uppercase', letterSpacing: 0.5 }}>{m.tag}</div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18 }}>{m.title}</div>
+            <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, flex: 1 }}>{m.desc}</div>
+            <div style={{ color: C.accent, fontWeight: 700, fontSize: 13 }}>Empezar →</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Header ────────────────────────────────────────────────────────────────────
-function Header({ credits, view, setView, onNew }: { credits: number; view: string; setView: (v: 'studio' | 'campaign' | 'history') => void; onNew: () => void }) {
-  const TABS: [('studio' | 'campaign' | 'history'), string][] = [['studio', 'Studio'], ['campaign', '🎬 Campaña UGC'], ['history', 'Mis creativos']];
+function Header({ credits, view, setView, onNew }: { credits: number; view: string; setView: (v: 'launcher' | 'studio' | 'campaign' | 'history') => void; onNew: () => void }) {
+  const TABS: [('launcher' | 'studio' | 'campaign' | 'history'), string][] = [['launcher', 'Inicio'], ['studio', 'Studio'], ['campaign', '🎬 Campaña UGC'], ['history', 'Mis creativos']];
   return (
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px clamp(16px,3vw,40px)', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, background: C.bg, zIndex: 5 }}>
       <div>
