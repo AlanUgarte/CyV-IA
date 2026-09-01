@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { path: '/admin/roles', label: 'Roles & Permisos', icon: '🔐' },
   { path: '/admin/billing', label: 'Facturación', icon: '💰' },
   { path: '/admin/credits', label: 'Créditos & Pagos', icon: '⚡' },
+  { path: '/admin/costs', label: 'Costos & Precios', icon: '📈' },
   { path: '/admin/flags', label: 'Feature Flags', icon: '🚩' },
   { path: '/admin/audit', label: 'Audit Log', icon: '📋' },
   { path: '/admin/comms', label: 'Comunicaciones', icon: '📢' },

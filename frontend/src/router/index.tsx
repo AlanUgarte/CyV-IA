@@ -47,6 +47,7 @@ const AdminAudit      = lazyLoad(() => import('../pages/admin/AdminAudit'));
 const AdminComms      = lazyLoad(() => import('../pages/admin/AdminComms'));
 const AdminSystem     = lazyLoad(() => import('../pages/admin/AdminSystem'));
 const AdminCredits    = lazyLoad(() => import('../pages/admin/AdminCredits'));
+const AdminCosts      = lazyLoad(() => import('../pages/admin/AdminCosts'));
 
 // ── Suspense / loading ────────────────────────────────────────────────────────
 function Fallback() {
@@ -149,6 +150,7 @@ export const router = createBrowserRouter([
       { path: 'comms',        element: <ErrorBoundary><S><AdminComms /></S></ErrorBoundary> },
       { path: 'system',       element: <ErrorBoundary><S><AdminSystem /></S></ErrorBoundary> },
       { path: 'credits',      element: <ErrorBoundary><S><AdminCredits /></S></ErrorBoundary> },
+      { path: 'costs',        element: <ErrorBoundary><S><AdminCosts /></S></ErrorBoundary> },
     ],
   },
 
