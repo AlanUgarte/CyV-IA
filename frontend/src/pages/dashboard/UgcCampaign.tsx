@@ -79,7 +79,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
       const scene = plan.scenes[i];
       setRuns(r => ({ ...r, [scene.key]: { ...r[scene.key], status: 'running' } }));
       try {
-        const res = await creativeApi.ugcScene({ product: { name: name || 'Producto' }, scene, referenceImage: avatarUrl || imageBase64, format });
+        const res = await creativeApi.ugcScene({ product: { name: name || 'Producto' }, scene, referenceImage: imageBase64 || avatarUrl, format });
         setCredits(res.credits);
         setRuns(r => ({ ...r, [scene.key]: { status: 'done', imageUrl: res.imageUrl, videoUrl: res.videoUrl } }));
         pushMsg('copilot', `✓ Escena ${i + 1} (${scene.title}) lista.`);
@@ -111,6 +111,42 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
     setRuns(r => { const c = { ...r }; delete c[key]; return c; });
   };
   const setAllDurations = (sec: number) => setPlan(p => { const b = materialize(p); return { ...b, scenes: b.scenes.map(s => ({ ...s, seconds: Math.min(15, Math.max(4, sec)) })) }; });
+  const updateScene = (key: string, patch: Partial<UgcScene>) => setPlan(p => { const b = materialize(p); return { ...b, scenes: b.scenes.map(s => s.key === key ? { ...s, ...patch } : s) }; });
+
+  // Regenerar una sola escena
+  const runScene = async (i: number) => {
+    const scene = plan?.scenes[i];
+    if (!scene) { pushMsg('copilot', `No encontré la escena ${i + 1}.`); return; }
+    if (!window.confirm(`Generar la escena ${i + 1} usará ${sceneCost} créditos. Tenés ${credits}. ¿Continuar?`)) return;
+    setRunning(true); setErr(null);
+    setRuns(r => ({ ...r, [scene.key]: { ...r[scene.key], status: 'running' } }));
+    pushMsg('copilot', `Generando la escena ${i + 1} (${scene.title})…`);
+    try {
+      const res = await creativeApi.ugcScene({ product: { name: name || 'Producto' }, scene, referenceImage: imageBase64 || avatarUrl, format });
+      setCredits(res.credits);
+      setRuns(r => ({ ...r, [scene.key]: { status: 'done', imageUrl: res.imageUrl, videoUrl: res.videoUrl } }));
+      pushMsg('copilot', `✓ Escena ${i + 1} lista.`);
+    } catch (e: any) {
+      setRuns(r => ({ ...r, [scene.key]: { ...r[scene.key], status: 'error' } }));
+      pushMsg('copilot', e?.response?.data?.message === 'SIN_CREDITOS' ? '🪫 Te quedaste sin créditos.' : `La escena ${i + 1} falló (no se descontaron créditos).`);
+    } finally { setRunning(false); }
+  };
+
+  // Foto de un nuevo artículo: pasa a ser la referencia de producto y reinicia los nodos para regenerarlos
+  const applyNewProduct = (b64: string, label?: string) => {
+    setImageBase64(b64);
+    if (label) setName(label);
+    setRuns(r => Object.fromEntries(Object.keys(r).map(k => [k, { status: 'idle' as SceneStatus }])));
+    setFinalVideoUrl(undefined);
+  };
+  const onCopilotAttach = async (file: File) => {
+    const b64 = await toBase64(file);
+    const nice = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+    const prev = name;
+    pushMsg('user', `📎 ${file.name} — hacelo con este artículo`);
+    applyNewProduct(b64, nice);
+    pushMsg('copilot', `Veo que subiste una nueva imagen de producto${nice ? ` (${nice})` : ''}. Voy a rehacer el anuncio con este artículo${prev ? ` en lugar de ${prev}` : ''}: lo puse como referencia en el nodo Producto y reinicié las escenas para regenerarlas. Escribí "ejecutá todo" y genero los videos con este producto.`);
+  };
 
   // ── El Copiloto interpreta y construye/edita los nodos por chat ──────────────
   const recommend = () => {
@@ -136,6 +172,22 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
     // Borrar escena N
     const idx = s.match(/escena\s*(\d+)/);
     if (idx && /(borr|elimin|saca|quit)/.test(s)) { const i = +idx[1] - 1; pushMsg('user', t); if (scenesNow[i]) { deleteScene(scenesNow[i].key); pushMsg('copilot', `Listo, saqué la escena ${i + 1}. Quedan ${scenesNow.length - 1} nodos en Generación.`); } else pushMsg('copilot', `No encontré la escena ${i + 1}.`); return; }
+    // Editar una escena puntual (renombrar / guion / visual / duración / regenerar)
+    if (idx) {
+      const i = +idx[1] - 1; const sc = scenesNow[i];
+      if (!sc) { pushMsg('user', t); pushMsg('copilot', `No encontré la escena ${i + 1}.`); return; }
+      const cap = (x: string) => { const v = x.trim().replace(/[.!?]+$/, ''); return v.charAt(0).toUpperCase() + v.slice(1); };
+      if (/(regener|volv[eé] a gener|rehac[eé]|gener[aá] de nuevo)/.test(s)) { pushMsg('user', t); if (!plan) pushMsg('copilot', 'Primero armá los nodos con un producto y después regeneramos.'); else runScene(i); return; }
+      let m = t.match(/(?:renombr\w*|llam\w*|titul\w*)\s+(?:la\s+)?escena\s*\d+\s*(?:a|como|:)\s*(.+)/i);
+      if (m) { const title = cap(m[1]); pushMsg('user', t); updateScene(sc.key, { title }); pushMsg('copilot', `Renombré la escena ${i + 1} a "${title}".`); return; }
+      m = t.match(/(?:gui[oó]n|di[gj]a|texto|frase)[^:]*[:]\s*(.+)/i) || (/(gui[oó]n|di[gj]a|texto|frase)/i.test(s) ? t.match(/(?:que\s+diga|:)\s*["“]?(.+?)["”]?$/i) : null);
+      if (m && /(gui[oó]n|di[gj]a|texto|frase)/i.test(s)) { const script = m[1].trim(); pushMsg('user', t); updateScene(sc.key, { script }); pushMsg('copilot', `Actualicé el guion de la escena ${i + 1}: “${script}”.`); return; }
+      const ds = s.match(/(\d{1,2})\s*(?:s|seg)/);
+      if (ds) { const sec = Math.min(15, Math.max(4, +ds[1])); pushMsg('user', t); updateScene(sc.key, { seconds: sec }); pushMsg('copilot', `La escena ${i + 1} ahora dura ${sec}s.`); return; }
+      m = t.match(/(?:muestre?|mostr\w+|se\s+vea|aparezca|con|en\s+primer\s+plano|estilo)\s+(.+)/i);
+      if (m) { const vis = m[1].trim(); pushMsg('user', t); updateScene(sc.key, { imagePrompt: `synthetic UGC person with the product ${name || ''}, ${vis}`, videoPrompt: `${vis}, natural UGC movement` }); pushMsg('copilot', `Actualicé la escena ${i + 1}: ${vis}.`); return; }
+      pushMsg('user', t); pushMsg('copilot', `Sobre la escena ${i + 1} puedo: renombrarla, cambiar el guion ("cambiá el guion de la escena ${i + 1}: ..."), el visual ("que muestre ..."), la duración ("de 10s") o regenerarla.`); return;
+    }
     // Duración
     const secM = s.match(/(\d{1,2})\s*(?:s|seg)/);
     const longer = /(m[aá]s largo|extend|dura m[aá]s)/.test(s), shorter = /(m[aá]s corto|acort)/.test(s);
@@ -230,15 +282,16 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
             onRunAll={plan ? runAll : () => pushMsg('copilot', 'Primero contame qué producto querés promocionar (escribilo en el chat) y armo los nodos por vos.')}
             onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
         </div>
-        <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={handleCopilot} />
+        <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={handleCopilot} onAttach={onCopilotAttach} />
       </div>
     </div>
   );
 }
 
-function CopilotPanel({ messages, running, planned, onGenerate, onSend }: { messages: { role: 'user' | 'copilot'; text: string }[]; running: boolean; planned: boolean; onGenerate: () => void; onSend: (t: string) => void }) {
+function CopilotPanel({ messages, running, planned, onGenerate, onSend, onAttach }: { messages: { role: 'user' | 'copilot'; text: string }[]; running: boolean; planned: boolean; onGenerate: () => void; onSend: (t: string) => void; onAttach: (f: File) => void }) {
   const [text, setText] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const attachRef = useRef<HTMLInputElement>(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
   const send = () => { const t = text.trim(); if (!t) return; setText(''); onSend(t); };
   return (
@@ -260,9 +313,11 @@ function CopilotPanel({ messages, running, planned, onGenerate, onSend }: { mess
           <button onClick={onGenerate} disabled={running} style={{ width: '100%', background: C.grad, color: '#fff', border: 'none', borderRadius: 11, padding: '11px', fontWeight: 700, fontSize: 14, cursor: running ? 'wait' : 'pointer', opacity: running ? 0.6 : 1 }}>{running ? 'Generando…' : '▶ Generar campaña'}</button>
         </div>
       )}
-      <div style={{ padding: 12, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
-        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Describí tu campaña o producto…" style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', color: C.text, fontSize: 13, outline: 'none' }} />
-        <button onClick={send} disabled={running || !text.trim()} style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '0 14px', fontWeight: 700, cursor: 'pointer', opacity: running || !text.trim() ? 0.5 : 1 }}>↑</button>
+      <div style={{ padding: 12, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input ref={attachRef} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) onAttach(f); e.currentTarget.value = ''; }} />
+        <button onClick={() => attachRef.current?.click()} disabled={running} title="Adjuntar foto de un artículo" style={{ background: C.surface2, color: C.text, border: `1px solid ${C.border}`, borderRadius: 10, width: 38, height: 38, flexShrink: 0, cursor: 'pointer', fontSize: 16, opacity: running ? 0.5 : 1 }}>📎</button>
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Pedile al Copiloto: crear, editar un nodo, o adjuntá un artículo…" style={{ flex: 1, minWidth: 0, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', color: C.text, fontSize: 13, outline: 'none' }} />
+        <button onClick={send} disabled={running || !text.trim()} style={{ background: C.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '0 14px', height: 38, fontWeight: 700, cursor: 'pointer', opacity: running || !text.trim() ? 0.5 : 1 }}>↑</button>
       </div>
     </aside>
   );
