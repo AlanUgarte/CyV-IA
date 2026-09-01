@@ -20,6 +20,8 @@ interface Props {
   value?: UploadFile[];
   onChange: (files: UploadFile[]) => void;
   onUpload?: (files: File[], onProgress: (pct: number) => void) => Promise<{ url: string; type: string }[]>;
+  tall?: boolean;
+  cta?: string;
 }
 
 function formatSize(bytes: number) {
@@ -81,6 +83,8 @@ export default function FileUploadZone({
   value = [],
   onChange,
   onUpload,
+  tall = false,
+  cta,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -163,8 +167,8 @@ export default function FileUploadZone({
         onDrop={onDrop}
         style={{
           border: `1.5px dashed ${dragging ? C.accent : hasFiles ? C.green + '66' : C.borderBright}`,
-          borderRadius: 10,
-          padding: hasFiles ? '14px' : '24px',
+          borderRadius: 12,
+          padding: hasFiles ? '14px' : tall ? '38px 24px' : '24px',
           textAlign: 'center',
           cursor: 'pointer',
           background: dragging ? C.accentDim : hasFiles ? C.greenDim + '44' : C.bg,
@@ -173,9 +177,10 @@ export default function FileUploadZone({
       >
         {!hasFiles && (
           <>
-            <div style={{ fontSize: 26, marginBottom: 7 }}>{icon}</div>
-            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 3 }}>{label}</div>
-            <div style={{ fontSize: 11, color: C.textDim }}>{hint}</div>
+            <div style={{ fontSize: tall ? 34 : 26, marginBottom: 9 }}>{icon}</div>
+            <div style={{ fontSize: 13.5, color: C.text, marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: 11.5, color: C.textDim }}>{hint}</div>
+            {cta && <div style={{ display: 'inline-block', marginTop: 16, background: C.surface2, border: `1px solid ${C.borderBright}`, borderRadius: 9, padding: '8px 18px', fontSize: 12.5, fontWeight: 600, color: C.text }}>{cta}</div>}
           </>
         )}
         {hasFiles && (

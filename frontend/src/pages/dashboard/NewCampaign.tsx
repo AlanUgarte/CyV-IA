@@ -7,7 +7,59 @@ import { generateCreativeImage } from '../../utils/creativeCanvas';
 import { editProductImage, generateProductImage } from '../../utils/openaiImageEdit';
 import { C } from '../../styles/theme';
 
-const STEPS = ['Producto', 'IA analiza', 'Creativos', 'Publicar'];
+const STEP_META = [
+  { title: 'Producto', sub: 'Información del producto' },
+  { title: 'IA analiza', sub: 'Análisis inteligente' },
+  { title: 'Creativos', sub: 'Generación de contenido' },
+  { title: 'Publicar', sub: 'Lanzar campaña' },
+];
+
+// ── Estilos y campos reutilizables del paso 1 ────────────────────────────────
+const cardBig: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24 };
+const inputBase: React.CSSProperties = { width: '100%', background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', color: C.text, fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
+const upLabel: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: C.textMuted, marginBottom: 9 };
+const tipBanner: React.CSSProperties = { marginTop: 4, padding: '12px 14px', background: C.accentDim, border: `1px solid ${C.accent}33`, borderRadius: 10, fontSize: 12.5, color: C.accent, lineHeight: 1.5 };
+const fieldIconStyle = (top = '50%'): React.CSSProperties => ({ position: 'absolute', left: 14, top, transform: top === '50%' ? 'translateY(-50%)' : 'none', fontSize: 15, color: C.textMuted, pointerEvents: 'none' });
+
+function Field({ label, req, sub, counter, children }: { label: string; req?: boolean; sub?: string; counter?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label style={{ display: 'flex', alignItems: 'center', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: C.textMuted, marginBottom: 8 }}>
+        {label}{req && <span style={{ color: '#a78bfa', marginLeft: 3 }}>*</span>}
+      </label>
+      {children}
+      {(sub || counter) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, gap: 8 }}>
+          <span style={{ fontSize: 11, color: C.textDim }}>{sub}</span>
+          {counter && <span style={{ fontSize: 11, color: C.textDim, flexShrink: 0 }}>{counter}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IconInput({ icon, ...rest }: { icon: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <span style={fieldIconStyle()}>{icon}</span>
+      <input {...rest} style={{ ...inputBase, paddingLeft: 40 }} />
+    </div>
+  );
+}
+
+function MoneyInput({ currency, setCurrency, ...rest }: { currency: Currency; setCurrency: (c: Currency) => void } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div style={{ display: 'flex' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: C.surface2, border: `1px solid ${C.border}`, borderRight: 'none', borderRadius: '10px 0 0 10px', padding: '0 8px 0 12px' }}>
+        <span style={{ color: C.textMuted, fontSize: 14 }}>$</span>
+        <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} style={{ background: 'transparent', border: 'none', color: C.text, fontSize: 13, fontWeight: 600, outline: 'none', cursor: 'pointer' }}>
+          <option value="USD">USD</option><option value="ARS">ARS</option>
+        </select>
+      </div>
+      <input {...rest} style={{ ...inputBase, borderRadius: '0 10px 10px 0', flex: 1, minWidth: 0 }} />
+    </div>
+  );
+}
 
 const CREATIVE_CONFIGS = [
   { fmt: '9:16' as const, label: 'Reel principal', from: '#1a0528', to: '#3d0f6b', emoji: '🎬', best: true },
@@ -43,7 +95,7 @@ export default function NewCampaign() {
   const [analyzeError, setAnalyzeError] = useState('');
 
   // Step 1 form
-  const [form, setForm] = useState({ name: '', price: '', desc: '', budget: '25', objective: '→ WhatsApp' });
+  const [form, setForm] = useState({ name: '', price: '', desc: '', budget: '25', objective: 'WhatsApp' });
   const [currency, setCurrency] = useState<Currency>('USD');
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
@@ -158,102 +210,110 @@ export default function NewCampaign() {
 
   return (
     <div className="content fade-in" translate="no">
-      <div className="steps-row" style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
-        {STEPS.map((s, i) => (
-          <div key={i} className="step-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              padding: '5px 13px', borderRadius: 6, fontSize: 12, fontFamily: "'DM Mono',monospace",
-              background: step === i + 1 ? C.accentDim : step > i + 1 ? C.greenDim : C.border,
-              color: step === i + 1 ? C.accent : step > i + 1 ? C.green : C.textMuted,
-              border: step === i + 1 ? `1px solid ${C.accent}44` : '1px solid transparent',
-            }}>{i + 1}. {s}</div>
-            {i < 3 && <span style={{ color: C.textDim, fontSize: 10 }}>›</span>}
-          </div>
-        ))}
+      <div style={{ marginBottom: 26 }}>
+        <div style={{ height: 4, borderRadius: 3, background: C.surface, overflow: 'hidden', marginBottom: 20 }}>
+          <div style={{ height: '100%', width: `${(step / 4) * 100}%`, background: C.grad, borderRadius: 3, transition: 'width .3s ease' }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+          {STEP_META.map((s, i) => {
+            const n = i + 1, active = step === n, done = step > n;
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 15,
+                  background: active ? C.grad : done ? C.greenDim : C.surface,
+                  color: active ? '#fff' : done ? C.green : C.textMuted,
+                  border: active ? 'none' : `1px solid ${C.border}`,
+                  boxShadow: active ? '0 8px 20px -6px rgba(124,92,252,.6)' : 'none',
+                }}>{done ? '✓' : n}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: active || done ? C.text : C.textMuted, whiteSpace: 'nowrap' }}>{s.title}</div>
+                  <div style={{ fontSize: 12, color: C.textDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.sub}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Step 1: Product data ─────────────────────────────────────────────── */}
       {step === 1 && (
-        <div className="g2" style={{ gap: 16 }}>
-          <div className="card">
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, marginBottom: 13 }}>Datos del producto</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div className="fg">
-                <label className="flbl">Nombre del producto</label>
-                <input className="finput" placeholder="ej. Nike Air Max 270" value={form.name} onChange={e => set('name', e.target.value)} />
-              </div>
-              <div className="fg">
-                <label className="flbl">Precio de venta</label>
-                <input className="finput" placeholder={currency === 'USD' ? '$99.00' : '$89.990'} value={form.price} onChange={e => set('price', e.target.value)} />
-              </div>
-              <div className="fg">
-                <label className="flbl">Descripción</label>
-                <textarea className="ftxt" placeholder="¿Qué hace especial este producto?" value={form.desc} onChange={e => set('desc', e.target.value)} />
-              </div>
-              <div className="g2">
-                <div className="fg">
-                  <label className="flbl">Presupuesto/día</label>
-                  <div style={{ display: 'flex', gap: 0 }}>
-                    {(['USD', 'ARS'] as Currency[]).map(cur => (
-                      <button key={cur} onClick={() => setCurrency(cur)} style={{
-                        padding: '8px 11px', fontSize: 11, fontFamily: "'DM Mono',monospace",
-                        background: currency === cur ? C.accentDim : C.surface,
-                        color: currency === cur ? C.accent : C.textMuted,
-                        border: `1px solid ${currency === cur ? C.accent : C.border}`,
-                        borderRadius: cur === 'USD' ? '7px 0 0 7px' : '0 7px 7px 0',
-                        cursor: 'pointer', transition: 'all .15s',
-                      }}>{cur}</button>
-                    ))}
-                    <input
-                      className="finput"
-                      type="number"
-                      value={form.budget}
-                      onChange={e => set('budget', e.target.value)}
-                      style={{ borderRadius: '0 7px 7px 0', borderLeft: 'none', flex: 1, minWidth: 0 }}
-                    />
-                  </div>
-                  <div style={{ fontSize: 10, color: C.textMuted, marginTop: 3 }}>
-                    {currency === 'ARS' ? `≈ $${Math.round(parseFloat(form.budget || '0') / 1100).toFixed(0)} USD/día` : `≈ $${Math.round(parseFloat(form.budget || '0') * 1100).toLocaleString('es-AR')} ARS/día`}
-                  </div>
+        <div className="g2" style={{ gap: 20, alignItems: 'start' }}>
+          {/* Izquierda: información del producto */}
+          <div style={cardBig}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18 }}>Información del producto</div>
+            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20 }}>Completá los datos principales de tu producto</div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <Field label="Nombre del producto" req counter={`${form.name.length}/100`}>
+                <IconInput icon="🏷️" placeholder="ej. Nike Air Max 270" value={form.name} maxLength={100} onChange={e => set('name', e.target.value)} />
+              </Field>
+
+              <Field label="Precio de venta" req sub={currency === 'ARS' ? `≈ $${Math.round(parseFloat(form.price || '0') / 1100).toLocaleString('es-AR')} USD` : `≈ $${Math.round(parseFloat(form.price || '0') * 1100).toLocaleString('es-AR')} ARS`}>
+                <MoneyInput currency={currency} setCurrency={setCurrency} value={form.price} placeholder="99.00" onChange={e => set('price', e.target.value)} />
+              </Field>
+
+              <Field label="Descripción" req counter={`${form.desc.length}/500`}>
+                <div style={{ position: 'relative' }}>
+                  <span style={fieldIconStyle('12px')}>✏️</span>
+                  <textarea value={form.desc} maxLength={500} onChange={e => set('desc', e.target.value)} placeholder="¿Qué hace especial este producto?"
+                    style={{ ...inputBase, paddingLeft: 40, paddingTop: 12, minHeight: 96, resize: 'vertical', lineHeight: 1.5 }} />
                 </div>
-                <div className="fg">
-                  <label className="flbl">Objetivo</label>
-                  <select className="fsel" value={form.objective} onChange={e => set('objective', e.target.value)}>
-                    <option>→ WhatsApp</option>
-                    <option>Tráfico web</option>
-                    <option>Conversiones</option>
-                    <option>Reconocimiento de marca</option>
-                  </select>
-                </div>
+              </Field>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Field label="Presupuesto diario" req sub={currency === 'ARS' ? `≈ $${Math.round(parseFloat(form.budget || '0') / 1100)} USD/día` : `≈ $${Math.round(parseFloat(form.budget || '0') * 1100).toLocaleString('es-AR')} ARS/día`}>
+                  <MoneyInput currency={currency} setCurrency={setCurrency} value={form.budget} placeholder="25" type="number" onChange={e => set('budget', e.target.value)} />
+                </Field>
+                <Field label="Objetivo principal" req sub="¿Dónde querés que lleguen tus clientes?">
+                  <div style={{ position: 'relative' }}>
+                    <span style={fieldIconStyle()}>🎯</span>
+                    <select value={form.objective} onChange={e => set('objective', e.target.value)} style={{ ...inputBase, paddingLeft: 40, cursor: 'pointer', appearance: 'none' }}>
+                      <option>WhatsApp</option>
+                      <option>Tráfico web</option>
+                      <option>Conversiones</option>
+                      <option>Reconocimiento de marca</option>
+                    </select>
+                    <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: C.textMuted, pointerEvents: 'none', fontSize: 11 }}>▾</span>
+                  </div>
+                </Field>
               </div>
+
+              <div style={tipBanner}>💡 <b style={{ fontWeight: 700 }}>Consejo:</b> Sé específico en la descripción para que la IA pueda crear mejores anuncios</div>
             </div>
           </div>
 
-          <div className="card">
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, marginBottom: 13 }}>Material</div>
-            <div style={{ marginBottom: 13 }}>
-              <label className="flbl" style={{ marginBottom: 7, display: 'block' }}>Video o imagen principal</label>
+          {/* Derecha: material del producto */}
+          <div style={cardBig}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18 }}>Material del producto</div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 7, padding: '4px 10px' }}>Opcional</span>
+            </div>
+            <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20 }}>Subí el material que quieres usar en tu campaña</div>
+
+            <label style={upLabel}>Video o imagen principal</label>
+            <div style={{ marginBottom: 20 }}>
               <FileUploadZone
                 accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp"
-                multiple={false} maxSizeMB={500} icon="🎬"
-                label="Arrastrá o hacé click para subir"
-                hint="MP4, MOV, JPG, PNG · máx 500 MB"
+                multiple={false} maxSizeMB={500} icon="🎬" tall cta="Seleccionar archivo"
+                label="Arrastrá tu video o hacé clic para subir"
+                hint="MP4, MOV, JPG, PNG · Máx. 500 MB"
                 value={mainFiles} onChange={setMainFiles} onUpload={handleUpload}
               />
             </div>
-            <div>
-              <label className="flbl" style={{ marginBottom: 7, display: 'block' }}>Fotos adicionales</label>
+
+            <label style={upLabel}>Fotos adicionales</label>
+            <div style={{ marginBottom: 16 }}>
               <FileUploadZone
                 accept="image/jpeg,image/png,image/webp"
-                multiple={true} maxSizeMB={50} icon="🖼️"
-                label="Arrastrá las fotos aquí"
-                hint="JPG, PNG, WebP · máx 50 MB por foto"
+                multiple={true} maxSizeMB={50} icon="🖼️" tall cta="Seleccionar archivos"
+                label="Arrastrá tus fotos o hacé clic para subir"
+                hint="JPG, PNG, WebP · Máx. 50 MB por foto"
                 value={extraFiles} onChange={setExtraFiles} onUpload={handleUpload}
               />
             </div>
-            <div style={{ marginTop: 13, padding: '10px 12px', background: C.accentDim, borderRadius: 8, fontSize: 12, color: C.accent, lineHeight: 1.5 }}>
-              💡 La IA crea versiones virales de tu material automáticamente
-            </div>
+
+            <div style={tipBanner}>😃 La IA puede crear versiones virales automáticamente con tu material</div>
           </div>
         </div>
       )}
@@ -487,7 +547,7 @@ export default function NewCampaign() {
 
       {/* ── Navigation ──────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
-        <button className="btn btn-g" onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1}>← Atrás</button>
+        <button className="btn btn-g" onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1}>← Volver</button>
 
         {step === 2 && !strategy && !analyzing ? (
           <button className="btn btn-p" onClick={runAnalysis}>🤖 Analizar con IA</button>
