@@ -320,11 +320,11 @@ export default function NewCampaign() {
 
       {/* ── Step 2: AI analysis ─────────────────────────────────────────────── */}
       {step === 2 && (
-        <div className="card" style={{ maxWidth: 540, margin: '0 auto' }}>
+        <div style={{ ...cardBig, maxWidth: 560, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', padding: '14px 0' }}>
             {!strategy && !analyzing && (
               <>
-                <div style={{ fontSize: 36, marginBottom: 13 }}>🤖</div>
+                <div style={{ width: 60, height: 60, borderRadius: '50%', background: C.grad, display: 'grid', placeItems: 'center', fontSize: 28, margin: '0 auto 14px', boxShadow: '0 12px 28px -10px rgba(124,92,252,.7)' }}>🤖</div>
                 <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 7 }}>Listo para analizar</div>
                 <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 18, lineHeight: 1.6 }}>
                   La IA va a analizar tu producto y crear la estrategia perfecta de Meta Ads: hook viral, audiencia, copy y formato ideal.
@@ -335,7 +335,7 @@ export default function NewCampaign() {
 
             {analyzing && (
               <>
-                <div style={{ fontSize: 36, marginBottom: 13 }}>🤖</div>
+                <div style={{ width: 60, height: 60, borderRadius: '50%', background: C.grad, display: 'grid', placeItems: 'center', fontSize: 28, margin: '0 auto 14px', boxShadow: '0 12px 28px -10px rgba(124,92,252,.7)' }}>🤖</div>
                 <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 18 }}>IA analizando...</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', marginBottom: 18 }}>
                   {['Analizando Meta Ad Library...', 'Detectando hooks virales...', 'Generando copy estratégico...', 'Definiendo segmentación ideal...'].map((t, i) => (
@@ -386,8 +386,8 @@ export default function NewCampaign() {
       {step === 3 && (
         <div className="g2" style={{ gap: 16 }}>
           {/* Left: Audience & Location */}
-          <div className="card">
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, marginBottom: 13 }}>Audiencia y zona</div>
+          <div style={cardBig}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Audiencia y zona</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="fg">
                 <label className="flbl">Sexo</label>
@@ -444,7 +444,7 @@ export default function NewCampaign() {
 
             return (
               <div>
-                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, marginBottom: 13 }}>
+                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 14 }}>
                   Creativos generados por IA
                   {photoUrl && <span style={{ fontSize: 10, color: C.green, marginLeft: 8, fontFamily: "'DM Mono',monospace" }}>✓ usando tu foto</span>}
                 </div>
@@ -508,8 +508,8 @@ export default function NewCampaign() {
       {/* ── Step 4: Publish ─────────────────────────────────────────────────── */}
       {step === 4 && (
         <div className="g2" style={{ gap: 16 }}>
-          <div className="card">
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, marginBottom: 13 }}>Configuración final</div>
+          <div style={cardBig}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Configuración final</div>
             <div style={{ padding: '9px 12px', background: C.greenDim, borderRadius: 8, border: `1px solid ${C.green}33`, fontSize: 12, color: C.green, marginBottom: 13 }}>
               ✅ Meta Ads conectado · WhatsApp vinculado
             </div>
@@ -531,8 +531,8 @@ export default function NewCampaign() {
               </div>
             ))}
           </div>
-          <div className="card">
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, marginBottom: 13 }}>Preview WhatsApp</div>
+          <div style={cardBig}>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 14 }}>Preview WhatsApp</div>
             <div style={{ background: '#0d1117', borderRadius: 10, padding: 14, fontSize: 12 }}>
               <div style={{ fontSize: 10, color: '#4b5563', marginBottom: 8, fontFamily: "'DM Mono',monospace" }}>WhatsApp Business</div>
               <div style={{ background: '#1f2937', borderRadius: '10px 10px 10px 2px', padding: '9px 11px', marginBottom: 7, maxWidth: '80%', lineHeight: 1.5 }}>
