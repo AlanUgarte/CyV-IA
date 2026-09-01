@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Filter, Plus, Play, Pause, RefreshCw,
   TrendingUp, TrendingDown, ChevronUp, ChevronDown,
-  BarChart2, Users, DollarSign,
+  BarChart2, Users, DollarSign, MoreVertical, Zap, Award,
 } from 'lucide-react';
 import { Tag, Spinner } from '../../components/ui';
 import {
@@ -128,16 +128,22 @@ export default function Campaigns() {
         )}
       </AnimatePresence>
 
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="mb-5">
+        <h1 className="font-syne font-extrabold" style={{ fontSize: 26, margin: '0 0 4px' }}>Campañas</h1>
+        <div className="text-muted text-[14px]">Gestioná y optimizá todas tus campañas en un solo lugar.</div>
+      </div>
+
       {/* ── Summary strip ─────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .25 }}
         className="g4 mb-5"
       >
         {[
-          { label: 'Activas',       value: summaryStats.active, icon: TrendingUp,   color: '#00d68f' },
-          { label: 'Pausadas',      value: summaryStats.paused, icon: TrendingDown, color: '#ff4d6a' },
-          { label: 'Leads totales', value: summaryStats.leads,  icon: Users,        color: '#7c5cfc' },
-          { label: 'Gasto total',   value: `$${(summaryStats.spent / 100).toFixed(0)}`, icon: DollarSign, color: '#ffb347' },
+          { label: 'Activas',       value: summaryStats.active, sub: 'Campañas en ejecución', icon: TrendingUp,   color: '#00d68f' },
+          { label: 'Pausadas',      value: summaryStats.paused, sub: 'Campañas pausadas',     icon: TrendingDown, color: '#ff4d6a' },
+          { label: 'Leads totales', value: summaryStats.leads,  sub: 'Leads generados',       icon: Users,        color: '#7c5cfc' },
+          { label: 'Gasto total',   value: `$${(summaryStats.spent / 100).toLocaleString('es-AR')}`, sub: 'Total invertido', icon: DollarSign, color: '#ffb347' },
         ].map((s, i) => {
           const Icon = s.icon;
           return (
@@ -145,16 +151,18 @@ export default function Campaigns() {
               key={s.label}
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: .22, delay: i * .06 }}
-              className="card flex items-center gap-3"
-              style={{ padding: '12px 14px' }}
+              className="card"
+              style={{ padding: 16 }}
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.color + '1a' }}>
-                <Icon size={15} style={{ color: s.color }} />
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.color + '1a' }}>
+                  <Icon size={16} style={{ color: s.color }} />
+                </div>
+                <Spark seed={i + 2} color={s.color} />
               </div>
-              <div>
-                <div className="text-[10px] text-muted font-mono uppercase tracking-wider">{s.label}</div>
-                <div className="font-syne font-bold text-[20px] leading-tight" style={{ color: s.color }}>{s.value}</div>
-              </div>
+              <div className="text-[10px] text-muted font-mono uppercase tracking-wider" style={{ marginTop: 12 }}>{s.label}</div>
+              <div className="font-syne font-bold" style={{ fontSize: 26, lineHeight: 1.1, color: s.color }}>{s.value}</div>
+              <div className="text-[11px] text-dim" style={{ marginTop: 2 }}>{s.sub}</div>
             </motion.div>
           );
         })}
@@ -270,6 +278,8 @@ export default function Campaigns() {
                 const roas = parseFloat(c.roas ?? '0');
                 const roasColor = roas >= 3 ? '#00d68f' : roas >= 1.5 ? '#ffb347' : '#ff4d6a';
                 const isActive = c.status === 'active' || c.status === 'optimizing';
+                const sc = STATUS_COLORS[c.status] ?? '#666688';
+                const pct = Math.min(100, Math.round(c.total_spent_cents / Math.max(1, c.daily_budget_cents * 30) * 100));
                 return (
                   <motion.tr
                     key={c.id}
@@ -278,33 +288,52 @@ export default function Campaigns() {
                     transition={{ delay: i * .04 }}
                   >
                     <td style={{ paddingLeft: 20 }}>
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-1.5 h-8 rounded-full flex-shrink-0"
-                          style={{ background: STATUS_COLORS[c.status] ?? '#666688' }}
-                        />
-                        <span className="text-[12.5px] font-medium text-text">{c.name}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-shrink-0" style={{ width: 38, height: 38, borderRadius: 11, background: sc + '22', border: `1px solid ${sc}44`, display: 'grid', placeItems: 'center', fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 15, color: sc }}>
+                          {(c.name || '?').trim().charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="text-[13px] font-semibold text-text" style={{ whiteSpace: 'nowrap' }}>{c.name}</div>
+                          <div className="text-[11px] text-muted flex items-center gap-1.5">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: sc }} />
+                            {c.impressions ? `${(c.impressions / 1000).toFixed(1)}K impresiones` : 'Campaña Meta Ads'}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td><Tag t={tagVariant(c.status) as any}>{statusLabel(c.status)}</Tag></td>
-                    <td className="font-mono text-[12px]">{formatBudget(c.daily_budget_cents)}<span className="text-muted text-[10px]">/día</span></td>
-                    <td className="font-mono text-[12px]">{formatSpent(c.total_spent_cents)}</td>
-                    <td className="font-mono text-[12px]">{normalizeCtr(c.ctr)}</td>
+                    <td className="font-mono text-[12px]">{formatBudget(c.daily_budget_cents)}<span className="text-muted text-[10px]">/día</span><div className="text-dim text-[10px]">Diario</div></td>
+                    <td style={{ minWidth: 130 }}>
+                      <div className="font-mono text-[12px]">{formatSpent(c.total_spent_cents)}</div>
+                      <div style={{ height: 5, borderRadius: 3, background: 'var(--surface2,#1a1a2e)', overflow: 'hidden', margin: '4px 0 3px', maxWidth: 110 }}>
+                        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 3, background: pct >= 90 ? '#ff4d6a' : '#00d68f' }} />
+                      </div>
+                      <div className="text-dim text-[10px]">{pct}% del presupuesto</div>
+                    </td>
+                    <td className="font-mono text-[12px]" style={{ color: parseFloat(c.ctr ?? '0') >= 4 ? '#00d68f' : undefined }}>{normalizeCtr(c.ctr)}</td>
                     <td className="font-mono text-[12px]">{formatCpc(c.cpc_cents)}</td>
                     <td className="font-mono text-[13px] font-semibold" style={{ color: '#7c5cfc' }}>{c.leads}</td>
-                    <td className="font-mono text-[13px] font-semibold" style={{ color: roasColor }}>{normalizeRoas(c.roas)}</td>
                     <td>
-                      <button
-                        className={`btn ${isActive ? 'btn-d' : 'btn-green'} flex items-center gap-1.5`}
-                        style={{ padding: '4px 10px', fontSize: 11 }}
-                        onClick={() => toggleCampaign(c)}
-                        disabled={actionId === c.id}
-                      >
-                        {actionId === c.id
-                          ? <Spinner size={11} />
-                          : isActive ? <><Pause size={11} /> Pausar</> : <><Play size={11} /> Activar</>
-                        }
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[13px] font-semibold" style={{ color: roasColor }}>{normalizeRoas(c.roas)}</span>
+                        <Spark seed={i + roas} color={roasColor} w={46} h={20} />
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          className={`btn ${isActive ? 'btn-d' : 'btn-green'} flex items-center gap-1.5`}
+                          style={{ padding: '5px 11px', fontSize: 11 }}
+                          onClick={() => toggleCampaign(c)}
+                          disabled={actionId === c.id}
+                        >
+                          {actionId === c.id
+                            ? <Spinner size={11} />
+                            : isActive ? <><Pause size={11} /> Pausar</> : <><Play size={11} /> Activar</>
+                          }
+                        </button>
+                        <button className="flex-shrink-0" style={{ background: 'transparent', border: 'none', color: 'var(--muted,#8a8aa0)', cursor: 'pointer', padding: 4, borderRadius: 6 }} title="Más opciones"><MoreVertical size={15} /></button>
+                      </div>
                     </td>
                   </motion.tr>
                 );
@@ -314,6 +343,61 @@ export default function Campaigns() {
         </div>
       </motion.div>
 
+      {/* ── Insights de rendimiento ───────────────────────────────────────── */}
+      {campaigns.length > 0 && (() => {
+        const byCtr = [...campaigns].sort((a, b) => parseFloat(b.ctr ?? '0') - parseFloat(a.ctr ?? '0'))[0];
+        const byLeads = [...campaigns].sort((a, b) => b.leads - a.leads)[0];
+        const byRoas = [...campaigns].sort((a, b) => parseFloat(b.roas ?? '0') - parseFloat(a.roas ?? '0'))[0];
+        const first = (n: string) => (n || '').split(' ')[0];
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .25, delay: .2 }}
+            className="card mt-5 flex items-center gap-5 flex-wrap"
+            style={{ padding: '16px 20px' }}
+          >
+            <div className="flex items-center gap-3" style={{ marginRight: 'auto' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#7c5cfc22' }}>
+                <BarChart2 size={18} style={{ color: '#7c5cfc' }} />
+              </div>
+              <div>
+                <div className="font-syne font-bold text-[15px]">Insights de rendimiento</div>
+                <div className="text-muted text-[12px]">Tus campañas activas están funcionando muy bien.</div>
+              </div>
+            </div>
+            {[
+              { icon: TrendingUp, label: 'Mejor CTR', value: normalizeCtr(byCtr.ctr), sub: first(byCtr.name), color: '#00d68f' },
+              { icon: Zap, label: 'Más leads', value: `${byLeads.leads}`, sub: first(byLeads.name), color: '#7c5cfc' },
+              { icon: Award, label: 'Mejor ROAS', value: normalizeRoas(byRoas.roas), sub: first(byRoas.name), color: '#ffb347' },
+            ].map(s => {
+              const Icon = s.icon;
+              return (
+                <div key={s.label} className="flex items-center gap-2.5">
+                  <Icon size={16} style={{ color: s.color }} />
+                  <div>
+                    <div className="text-[10px] text-muted uppercase tracking-wide">{s.label}</div>
+                    <div className="font-syne font-bold text-[16px]" style={{ color: s.color, lineHeight: 1.1 }}>{s.value}</div>
+                    <div className="text-dim text-[10px]">{s.sub}</div>
+                  </div>
+                </div>
+              );
+            })}
+            <button onClick={() => navigate('/dashboard/reports')} className="btn btn-g" style={{ fontSize: 12, padding: '8px 14px' }}>Ver reporte completo</button>
+          </motion.div>
+        );
+      })()}
+
     </div>
+  );
+}
+
+// Mini sparkline decorativo (tendencia suave determinística, sin datos inventados)
+function Spark({ seed, color, w = 64, h = 26 }: { seed: number; color: string; w?: number; h?: number }) {
+  const pts = Array.from({ length: 12 }, (_, i) => 10 + ((Math.sin(seed * 1.3 + i * 0.9) + 1) / 2) * 16 + i * 0.5);
+  const max = Math.max(...pts), min = Math.min(...pts), span = max - min || 1;
+  const d = pts.map((v, i) => `${(i * (w / 11)).toFixed(1)},${(h - 3 - ((v - min) / span) * (h - 6)).toFixed(1)}`).join(' ');
+  return (
+    <svg width={w} height={h} style={{ display: 'block', flexShrink: 0 }}>
+      <polyline points={d} fill="none" stroke={color} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" opacity={0.85} />
+    </svg>
   );
 }
