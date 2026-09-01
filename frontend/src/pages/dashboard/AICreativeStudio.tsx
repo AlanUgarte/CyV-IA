@@ -277,67 +277,113 @@ function ModePreview({ kind }: { kind: 'nodes' | 'wizard' | 'library' }) {
   );
   return (
     <svg viewBox="0 0 260 120" style={{ width: '100%', height: '100%' }}>
-      {[0, 1, 2, 3, 4].map(i => <rect key={i} x={18 + i * 47} y={i % 2 ? 34 : 20} width="40" height={i % 2 ? 66 : 80} rx="8" fill={`rgba(255,255,255,${0.85 - i * 0.12})`} />)}
+      <rect x="120" y="30" width="120" height="78" rx="12" fill="#ffffff22" stroke="#ffffff44" />
+      <rect x="40" y="18" width="92" height="66" rx="12" fill="#ffffffe0" />
+      <circle cx="66" cy="40" r="9" fill="#ffe08a" />
+      <path d="M50 74 L74 50 L92 68 L108 54 L124 74 Z" fill="#7bd8b0" />
+      <rect x="150" y="72" width="86" height="40" rx="9" fill="#ffffffcc" />
+    </svg>
+  );
+}
+
+// Ilustración del hero: nodo central → 3 pills (Producto / IA analiza / Creativos listos)
+function HeroGraph() {
+  const pills: [string, string, number][] = [['📦', 'Producto', 30], ['◎', 'IA analiza', 102], ['▷', 'Creativos listos', 174]];
+  return (
+    <svg viewBox="0 0 460 240" style={{ width: '100%', height: '100%' }}>
+      <defs>
+        <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#9b7cff" /><stop offset="1" stopColor="#5a34e0" /></linearGradient>
+        <filter id="hglow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+      </defs>
+      <rect x="20" y="104" width="46" height="34" rx="9" fill="#ffffffe6" />
+      <path d="M66 121 C 110 121, 120 121, 156 121" stroke="#ffffff40" strokeWidth="2" fill="none" />
+      {pills.map(([, , y], i) => <path key={i} d={`M232 121 C 280 121, 280 ${y + 19}, 314 ${y + 19}`} stroke="#ffffff33" strokeWidth="2" fill="none" />)}
+      <g filter="url(#hglow)"><rect x="156" y="85" width="76" height="76" rx="20" fill="url(#hg)" /></g>
+      <text x="194" y="133" textAnchor="middle" fontSize="30">✨</text>
+      {pills.map(([ic, l, y], i) => (
+        <g key={i}>
+          <rect x="314" y={y} width="138" height="38" rx="11" fill="#171331" stroke="#ffffff26" />
+          <text x="332" y={y + 24} fontSize="15">{ic}</text>
+          <text x="352" y={y + 24} fontSize="13.5" fill="#e9e4ff" fontWeight="600">{l}</text>
+        </g>
+      ))}
     </svg>
   );
 }
 
 function Launcher({ setView }: { setView: (v: 'launcher' | 'studio' | 'campaign' | 'history') => void }) {
   const [gallery, setGallery] = useState<any[]>([]);
-  useEffect(() => { creativeApi.list().then(l => setGallery(l.slice(0, 6))).catch(() => {}); }, []);
+  useEffect(() => { creativeApi.list().then(l => setGallery(l.slice(0, 5))).catch(() => {}); }, []);
   const MODES = [
-    { key: 'campaign' as const, kind: 'nodes' as const, title: 'Campaña UGC con Copiloto', desc: 'El agente planifica y arma los nodos. Ejecutás en el canvas y ensamblás el video final.', tag: 'Nodos + IA', grad: 'linear-gradient(135deg,#8b6bff,#4a2fd0)' },
-    { key: 'studio' as const, kind: 'wizard' as const, title: 'Studio por pasos', desc: 'Asistente guiado: producto → objetivo → estilo → imagen → video → copy.', tag: 'Wizard', grad: 'linear-gradient(135deg,#4da6ff,#2b6fd0)' },
-    { key: 'history' as const, kind: 'library' as const, title: 'Mis creativos', desc: 'Tu biblioteca de imágenes y videos, con filtros y favoritos.', tag: 'Biblioteca', grad: 'linear-gradient(135deg,#00d68f,#00a06a)' },
+    { key: 'campaign' as const, kind: 'nodes' as const, title: 'Campaña UGC con Copiloto', desc: 'El agente planifica y arma los nodos. Ejecutás en el canvas y ensamblás el video final.', tag: 'Nodos + IA', cta: 'Empezar', grad: 'linear-gradient(135deg,#7c5cfc,#4a2fd0)' },
+    { key: 'studio' as const, kind: 'wizard' as const, title: 'Studio por pasos', desc: 'Asistente guiado: producto → objetivo → estilo → imagen → video → copy.', tag: 'Wizard', cta: 'Empezar', grad: 'linear-gradient(135deg,#3f7fe0,#2350b8)' },
+    { key: 'history' as const, kind: 'library' as const, title: 'Mis creativos', desc: 'Tu biblioteca de imágenes y videos, con filtros y favoritos.', tag: 'Biblioteca', cta: 'Explorar', grad: 'linear-gradient(135deg,#12a97a,#0a7d59)' },
   ];
   return (
-    <div style={{ padding: '28px clamp(16px,3vw,44px)', maxWidth: 1200, margin: '0 auto' }}>
-      {/* Banner */}
-      <div className="cv-fade-in" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 'clamp(24px,3.5vw,40px)', marginBottom: 28, background: 'radial-gradient(120% 160% at 0% 0%, #8b6bff, #5b3ff0 45%, #33228f 80%)' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(50% 90% at 100% 0%, #4da6ff33, transparent 60%)' }} />
-        <div style={{ position: 'relative', zIndex: 2, maxWidth: 560 }}>
-          <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(24px,3.4vw,36px)', color: '#fff', lineHeight: 1.05, margin: '0 0 10px', letterSpacing: -0.5 }}>Creá tu campaña publicitaria con IA</h1>
-          <p style={{ color: 'rgba(255,255,255,.85)', fontSize: 15, margin: '0 0 20px', lineHeight: 1.5 }}>Elegí cómo trabajar: dejá que el Copiloto arme los nodos por vos, o seguí el asistente paso a paso.</p>
-          <button onClick={() => setView('campaign')} className="cv-lift" style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 12, padding: '12px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 10px 24px -8px #0007' }}>🎬 Crear campaña UGC</button>
+    <div style={{ padding: '24px clamp(16px,3vw,44px)', maxWidth: 1280, margin: '0 auto' }}>
+      {/* Hero */}
+      <div className="cv-fade-in" style={{ position: 'relative', overflow: 'hidden', borderRadius: 22, padding: 'clamp(26px,3.4vw,44px)', marginBottom: 30, background: 'linear-gradient(120deg,#171232 0%,#120d26 55%,#0d0a1c 100%)', border: '1px solid #241c46' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 120% at 92% 20%, #6d4bd633, transparent 60%), radial-gradient(50% 80% at 0% 0%, #4a2fd022, transparent 60%)' }} />
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 360px', minWidth: 280 }}>
+            <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 'clamp(26px,3.6vw,40px)', color: '#fff', lineHeight: 1.05, margin: '0 0 12px', letterSpacing: -0.6 }}>Creá tu campaña<br /><span style={{ color: '#a78bfa' }}>publicitaria con IA</span></h1>
+            <p style={{ color: 'rgba(255,255,255,.72)', fontSize: 15, margin: '0 0 22px', lineHeight: 1.55, maxWidth: 460 }}>Elegí cómo trabajar: dejá que el Copiloto arme los nodos por vos, o seguí el asistente paso a paso.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <button onClick={() => setView('campaign')} className="cv-lift" style={{ background: '#fff', color: '#4a2fd0', border: 'none', borderRadius: 12, padding: '13px 24px', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 12px 28px -10px #000a', display: 'inline-flex', alignItems: 'center', gap: 8 }}>✨ Crear campaña UGC</button>
+              <button onClick={() => setView('studio')} style={{ background: 'transparent', color: 'rgba(255,255,255,.9)', border: 'none', fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                <span style={{ width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #ffffff44', display: 'grid', placeItems: 'center', fontSize: 11 }}>▶</span>Ver cómo funciona
+              </button>
+            </div>
+          </div>
+          <div style={{ flex: '1 1 340px', minWidth: 280, maxWidth: 520, alignSelf: 'stretch', minHeight: 190 }} className="hero-thumbs"><HeroGraph /></div>
         </div>
-        <div style={{ position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)', width: 260, height: 120, opacity: 0.95, zIndex: 1 }} className="hero-thumbs"><ModePreview kind="nodes" /></div>
       </div>
 
       {/* Modos */}
-      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginBottom: 16 }}>Empezá una creación</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16, marginBottom: 30 }}>
+      <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 19, marginBottom: 16 }}>Empezá una creación</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 16, marginBottom: 34 }}>
         {MODES.map(m => (
-          <button key={m.key} onClick={() => setView(m.key)} className="cv-card cv-thumb" style={{ textAlign: 'left', padding: 0, cursor: 'pointer', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ height: 132, background: m.grad, padding: 12, position: 'relative' }}>
-              <span style={{ position: 'absolute', top: 12, left: 12, fontSize: 10.5, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,.22)', borderRadius: 999, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: 0.5, zIndex: 2 }}>{m.tag}</span>
-              <ModePreview kind={m.kind} />
-            </div>
-            <div style={{ padding: 18 }}>
-              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17, marginBottom: 6 }}>{m.title}</div>
-              <div style={{ fontSize: 13.5, color: C.textMuted, lineHeight: 1.55, marginBottom: 12 }}>{m.desc}</div>
-              <div style={{ color: C.accent, fontWeight: 700, fontSize: 13.5 }}>Empezar →</div>
-            </div>
+          <button key={m.key} onClick={() => setView(m.key)} className="cv-lift" style={{ position: 'relative', overflow: 'hidden', textAlign: 'left', cursor: 'pointer', borderRadius: 18, border: '1px solid #ffffff1a', padding: '20px 22px', minHeight: 196, background: m.grad, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ position: 'absolute', right: -12, bottom: 6, top: 44, width: '48%', opacity: 0.92, pointerEvents: 'none' }}><ModePreview kind={m.kind} /></div>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#fff', background: 'rgba(0,0,0,.28)', borderRadius: 999, padding: '4px 11px', textTransform: 'uppercase', letterSpacing: 0.6, width: 'fit-content', zIndex: 2 }}>{m.tag}</span>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: '#fff', margin: '16px 0 7px', zIndex: 2, maxWidth: '62%' }}>{m.title}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.82)', lineHeight: 1.5, zIndex: 2, maxWidth: '58%', flex: 1 }}>{m.desc}</div>
+            <div style={{ zIndex: 2, marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,.16)', backdropFilter: 'blur(4px)', color: '#fff', fontWeight: 700, fontSize: 13, borderRadius: 9, padding: '8px 14px', width: 'fit-content' }}>{m.cta} →</div>
           </button>
         ))}
       </div>
 
-      {/* Tus creativos */}
+      {/* Tus creativos recientes */}
       {gallery.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18 }}>Tus creativos recientes</div>
-            <button onClick={() => setView('history')} className="cv-lift" style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.text, borderRadius: 10, padding: '7px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Ver todos →</button>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 19 }}>Tus creativos recientes</div>
+            <button onClick={() => setView('history')} className="cv-lift" style={{ background: 'transparent', border: `1px solid ${C.border}`, color: C.text, borderRadius: 10, padding: '8px 15px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Ver todos →</button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 14 }}>
-            {gallery.map(it => (
-              <div key={it.id} onClick={() => setView('history')} className="cv-card cv-thumb" style={{ overflow: 'hidden', cursor: 'pointer', padding: 0 }}>
-                <div style={{ aspectRatio: '3/4', background: '#16162a', overflow: 'hidden' }}>
-                  {it.video_url ? <video src={it.video_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : it.output_url ? <img src={it.output_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#333355' }}>🎨</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 16 }}>
+            {gallery.map(it => {
+              const isVideo = !!it.video_url;
+              const badge = /ugc/i.test(it.type || '') || /ugc/i.test(it.name || '') ? 'UGC' : 'ANUNCIO';
+              const date = it.created_at ? new Date(it.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+              return (
+                <div key={it.id} onClick={() => setView('history')} className="cv-card cv-thumb" style={{ overflow: 'hidden', cursor: 'pointer', padding: 0 }}>
+                  <div style={{ aspectRatio: '16/10', background: '#16162a', overflow: 'hidden', position: 'relative' }}>
+                    {isVideo ? <video src={it.video_url} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : it.output_url ? <img src={it.output_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ display: 'grid', placeItems: 'center', height: '100%', fontSize: 26, color: '#3a3a5e' }}>🎨</div>}
+                    <span style={{ position: 'absolute', top: 9, left: 9, fontSize: 9.5, fontWeight: 800, letterSpacing: 0.5, color: '#fff', background: badge === 'UGC' ? 'rgba(124,92,252,.9)' : 'rgba(0,0,0,.55)', borderRadius: 6, padding: '3px 8px' }}>{badge}</span>
+                    {isVideo && <span style={{ position: 'absolute', bottom: 9, right: 9, fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,.6)', borderRadius: 6, padding: '2px 7px' }}>▶</span>}
+                  </div>
+                  <div style={{ padding: '11px 12px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || 'Creativo'}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+                      <span style={{ fontSize: 11.5, color: C.textMuted }}>{date}</span>
+                      <span style={{ fontSize: 15, color: C.textDim, lineHeight: 1 }}>⋯</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
