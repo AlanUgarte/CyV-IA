@@ -302,7 +302,7 @@ export default function Campaigns() {
                       </div>
                     </td>
                     <td><Tag t={tagVariant(c.status) as any}>{statusLabel(c.status)}</Tag></td>
-                    <td className="font-mono text-[12px]">{formatBudget(c.daily_budget_cents)}<span className="text-muted text-[10px]">/día</span><div className="text-dim text-[10px]">Diario</div></td>
+                    <td className="font-mono text-[12px]">{formatBudget(c.daily_budget_cents)}<div className="text-dim text-[10px]">Diario</div></td>
                     <td style={{ minWidth: 130 }}>
                       <div className="font-mono text-[12px]">{formatSpent(c.total_spent_cents)}</div>
                       <div style={{ height: 5, borderRadius: 3, background: 'var(--surface2,#1a1a2e)', overflow: 'hidden', margin: '4px 0 3px', maxWidth: 110 }}>
