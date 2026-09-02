@@ -130,6 +130,56 @@ function DashHome() {
   );
 }
 
+// Teléfono mock
+function Phone({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ width: 208, flexShrink: 0, borderRadius: 30, border: `1px solid ${P.border2}`, background: '#0c0c18', padding: 9, boxShadow: `0 34px 70px -40px #000, 0 0 40px -18px ${P.violet}` }}>
+      <div style={{ height: 5, width: 58, background: P.border2, borderRadius: 3, margin: '3px auto 9px' }} />
+      <div style={{ borderRadius: 22, overflow: 'hidden', background: P.bg2, border: `1px solid ${P.border}` }}>{children}</div>
+    </div>
+  );
+}
+// Node-graph radial: CONVERSIA en el centro conectada a las plataformas
+function RadialGraph({ platforms }: { platforms: string[] }) {
+  const pos: Record<string, [number, number]> = { center: [230, 170], Meta: [230, 42], 'Google Ads': [72, 138], Instagram: [388, 138], Facebook: [150, 292], WhatsApp: [330, 292], TikTok: [96, 250] };
+  const chip = (p: string) => {
+    const [x, y] = pos[p]; const center = p === 'center';
+    return (
+      <div key={p} style={{ position: 'absolute', left: x, top: y, transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', gap: 8, background: center ? P.card : P.bg2, border: `1px solid ${center ? P.violet + '77' : P.border2}`, borderRadius: 12, padding: center ? '12px 16px' : '9px 12px', boxShadow: center ? `0 0 30px -8px ${P.violet}` : 'none', fontFamily: center ? "'Syne',sans-serif" : 'inherit', fontWeight: center ? 800 : 600, fontSize: center ? 15 : 12.5, whiteSpace: 'nowrap', zIndex: 2 }}>
+        {center ? <Logo size={22} /> : <span style={{ width: 16, height: 16, borderRadius: 5, background: PLATFORMS[p] ?? P.violet }} />}{center ? 'CONVERSIA' : p}{!center && <span style={{ fontSize: 8, color: P.green }}>●</span>}
+      </div>
+    );
+  };
+  return (
+    <div style={{ position: 'relative', width: '100%', maxWidth: 460, height: 340, margin: '10px auto 0' }}>
+      <svg viewBox="0 0 460 340" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        <defs><marker id="lparr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L5,3 L0,6" fill={`${P.violet}aa`} /></marker></defs>
+        {platforms.map(p => { const [x, y] = pos[p]; const [cx, cy] = pos.center; return <line key={p} x1={cx} y1={cy} x2={x} y2={y} stroke={`${P.violet}55`} strokeWidth="1.6" strokeDasharray="4 5" markerEnd="url(#lparr)" />; })}
+      </svg>
+      {chip('center')}
+      {platforms.map(chip)}
+    </div>
+  );
+}
+// Preview de anuncio estilo feed
+function AdPreview() {
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', maxWidth: 300, color: '#111', boxShadow: '0 20px 50px -24px #000' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 12 }}>
+        <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg,${P.violet},${P.violetD})`, display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontFamily: "'Syne',sans-serif" }}>C</div>
+        <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 13 }}>CONVERSIA</div><div style={{ fontSize: 11, color: '#777' }}>Publicidad</div></div><span style={{ color: '#999' }}>···</span>
+      </div>
+      <div style={{ padding: '0 12px 10px', fontSize: 12.5 }}>Más ventas, menos esfuerzo. Dejá que la IA optimice tus campañas.</div>
+      <div style={{ height: 170, background: 'linear-gradient(135deg,#1a1a1a,#2b2b2b)', display: 'grid', placeItems: 'center', color: '#eee', fontSize: 34 }}>👟</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 12, background: '#f2f2f4' }}>
+        <div><div style={{ fontSize: 10, color: '#888' }}>CONVERSIA.COM</div><div style={{ fontSize: 12, fontWeight: 700 }}>Tu próximo cliente está más cerca de lo que creés</div></div>
+        <div style={{ fontSize: 11, fontWeight: 700, border: '1px solid #ccc', borderRadius: 7, padding: '6px 10px', whiteSpace: 'nowrap' }}>Más info</div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-around', padding: '9px 0', fontSize: 11.5, color: '#555', borderTop: '1px solid #eee' }}><span>👍 Me gusta</span><span>💬 Comentar</span><span>↗ Compartir</span></div>
+    </div>
+  );
+}
+
 // ── Secciones ────────────────────────────────────────────────────────────────
 function Section({ children, id, n, label, style }: { children: ReactNode; id?: string; n?: number; label?: string; style?: CSSProperties }) {
   return (
@@ -196,13 +246,22 @@ function Problema() {
   return (
     <Section n={2} label="Problema">
       <Fade><h2 style={{ ...H1, fontSize: 'clamp(28px,4.4vw,46px)', maxWidth: 720 }}>Publicar anuncios no debería ser un trabajo de tiempo completo.</h2></Fade>
-      <Fade delay={100}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 40, justifyContent: 'center' }}>
-          {labels.map((l, i) => (
-            <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 10, background: P.card, border: `1px solid ${P.border}`, borderRadius: 12, padding: '14px 18px', fontSize: 14.5, color: P.text, transform: `rotate(${(i % 3 - 1) * 1.4}deg)`, boxShadow: '0 20px 40px -30px #000' }}>
-              <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 8, background: `${P.violet}22`, color: P.violet2, fontSize: 13 }}>✕</span>{l}
+      <Fade delay={80}>
+        <div style={{ position: 'relative', height: 440, marginTop: 26, overflow: 'hidden' }}>
+          {[{ l: '7%', t: '24%', w: 270, r: -4 }, { l: '35%', t: '42%', w: 320, r: 2 }, { l: '55%', t: '16%', w: 300, r: 3 }].map((w, i) => (
+            <div key={i} style={{ position: 'absolute', left: w.l, top: w.t, width: w.w, transform: `rotate(${w.r}deg)`, background: P.card, border: `1px solid ${P.border2}`, borderRadius: 12, overflow: 'hidden', opacity: 0.92, boxShadow: '0 34px 64px -30px #000' }}>
+              <div style={{ display: 'flex', gap: 5, padding: '8px 10px', borderBottom: `1px solid ${P.border}` }}>{['#ff5f57', '#febc2e', '#28c840'].map(c => <span key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />)}</div>
+              <div style={{ height: 118, background: `linear-gradient(135deg,${P.bg2},${P.card})`, display: 'grid', placeItems: 'center', color: P.dim, fontSize: 22 }}>{['📊', '🖼️', '📈'][i]}</div>
             </div>
           ))}
+          {labels.map((l, i) => {
+            const pos = [['3%', '6%'], ['61%', '4%'], ['79%', '32%'], ['76%', '55%'], ['31%', '60%'], ['8%', '66%'], ['40%', '83%']][i];
+            return (
+              <div key={l} style={{ position: 'absolute', left: pos[0], top: pos[1], display: 'flex', alignItems: 'center', gap: 9, background: '#15131f', border: `1px solid ${P.border2}`, borderRadius: 11, padding: '10px 14px', fontSize: 13, fontWeight: 600, boxShadow: '0 18px 32px -18px #000', zIndex: 2, whiteSpace: 'nowrap' }}>
+                <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, borderRadius: 7, background: P.violet, color: '#fff', fontSize: 11 }}>✕</span>{l}
+              </div>
+            );
+          })}
         </div>
       </Fade>
     </Section>
@@ -279,8 +338,11 @@ function Generacion() {
         <p style={{ color: P.muted, fontSize: 15.5, maxWidth: 560, marginBottom: 40 }}>Convertí una idea en múltiples variaciones de anuncios con IA. Imágenes, videos, textos y llamados a la acción optimizados para cada plataforma.</p></Fade>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'center' }} className="lp-2col">
         <Fade>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            {feats.map(([ic, t, d]) => <div key={t} style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: 14, padding: 16 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: `${P.violet}22`, display: 'grid', placeItems: 'center', fontSize: 18, marginBottom: 10 }}>{ic}</div><div style={{ fontWeight: 700, fontSize: 14 }}>{t}</div><div style={{ fontSize: 12.5, color: P.muted, marginTop: 3 }}>{d}</div></div>)}
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <AdPreview />
+            <div style={{ flex: 1, minWidth: 190, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {feats.map(([ic, t, d]) => <div key={t} style={{ display: 'flex', gap: 12, background: P.card, border: `1px solid ${P.border}`, borderRadius: 14, padding: 14 }}><div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 10, background: `${P.violet}22`, display: 'grid', placeItems: 'center', fontSize: 17 }}>{ic}</div><div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{t}</div><div style={{ fontSize: 12, color: P.muted, marginTop: 2 }}>{d}</div></div></div>)}
+            </div>
           </div>
         </Fade>
         <Fade delay={120}>
@@ -325,6 +387,20 @@ function Resultados() {
         </div>
         <Fade delay={160}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+              <Phone>
+                <div style={{ padding: 10 }}>
+                  <div style={{ fontSize: 9, color: P.dim }}>Campaña</div>
+                  <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 8 }}>Lanzamiento Verano</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 5, marginBottom: 8 }}>
+                    {[['Ventas', '$6.675'], ['ROAS', '4,1x'], ['CFA', '$4,21']].map(([l, v]) => <div key={l} style={{ background: P.card, borderRadius: 7, padding: '6px 5px' }}><div style={{ fontSize: 8, color: P.dim }}>{l}</div><div style={{ fontSize: 11, fontWeight: 800, fontFamily: "'Syne',sans-serif" }}>{v}</div></div>)}
+                  </div>
+                  <div style={{ height: 54 }}><Area /></div>
+                  <div style={{ fontSize: 9, color: P.dim, margin: '8px 0 4px' }}>Mejores anuncios</div>
+                  {[['Anuncio 1', '5,2x'], ['Anuncio 2', '3,8x'], ['Anuncio 3', '3,1x']].map(([a, r]) => <div key={a} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '3px 0' }}><span>{a}</span><b style={{ color: P.green }}>{r}</b></div>)}
+                </div>
+              </Phone>
+            </div>
             {feats.map(([ic, t, d]) => <div key={t} style={{ display: 'flex', gap: 13, background: P.card, border: `1px solid ${P.border}`, borderRadius: 14, padding: 16 }}><div style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, background: `${P.violet}22`, display: 'grid', placeItems: 'center', fontSize: 18 }}>{ic}</div><div><div style={{ fontWeight: 700, fontSize: 14.5 }}>{t}</div><div style={{ fontSize: 13, color: P.muted, marginTop: 2 }}>{d}</div></div></div>)}
             <div style={{ background: `linear-gradient(135deg,${P.violet},${P.violetD})`, borderRadius: 16, padding: 20 }}><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17, color: '#fff', marginBottom: 12 }}>Tomá decisiones basadas en datos. Escalá lo que funciona.</div><Btn variant="white">Empezar gratis →</Btn></div>
           </div>
@@ -343,8 +419,8 @@ function Integraciones() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 40, alignItems: 'center' }} className="lp-2col">
         <Fade>
           <h2 style={{ ...H1, fontSize: 'clamp(26px,4vw,42px)', marginBottom: 16 }}>Tu publicidad conectada en un solo lugar.</h2>
-          <p style={{ color: P.muted, fontSize: 15.5, lineHeight: 1.6, marginBottom: 30, maxWidth: 440 }}>Conectá tus cuentas publicitarias y centralizá todas tus campañas. La IA optimiza automáticamente la inversión en cada plataforma para que obtengas más resultados.</p>
-          <NodeGraph />
+          <p style={{ color: P.muted, fontSize: 15.5, lineHeight: 1.6, marginBottom: 10, maxWidth: 440 }}>Conectá tus cuentas publicitarias y centralizá todas tus campañas. La IA optimiza automáticamente la inversión en cada plataforma para que obtengas más resultados.</p>
+          <RadialGraph platforms={['Meta', 'Google Ads', 'Instagram', 'Facebook', 'WhatsApp']} />
         </Fade>
         <Fade delay={120}>
           <div style={{ background: P.card, border: `1px solid ${P.border2}`, borderRadius: 16, padding: 16 }}>
@@ -367,19 +443,6 @@ function Integraciones() {
     </Section>
   );
 }
-function NodeGraph() {
-  const nodes = ['Meta', 'Google Ads', 'Instagram', 'Facebook', 'WhatsApp'];
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: P.card, border: `1px solid ${P.violet}66`, borderRadius: 12, padding: '12px 16px', boxShadow: `0 0 34px -12px ${P.violet}`, fontFamily: "'Syne',sans-serif", fontWeight: 800 }}><Logo size={24} /> CONVERSIA</div>
-      <span style={{ color: P.dim }}>→</span>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {nodes.map(n => <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 7, background: P.bg2, border: `1px solid ${P.border}`, borderRadius: 10, padding: '9px 12px', fontSize: 12.5 }}><span style={{ width: 15, height: 15, borderRadius: 5, background: PLATFORMS[n] ?? P.violet }} />{n}<span style={{ fontSize: 9, color: P.green }}>●</span></div>)}
-      </div>
-    </div>
-  );
-}
-
 function Beneficios() {
   const cards = [['⚡', 'Más velocidad', 'Pasá de horas a minutos. La IA hace el trabajo pesado.'], ['✨', 'Más creativos', 'Potenciá tus ideas y sorprendé a tus audiencias.'], ['🎯', 'Decisiones inteligentes', 'Tomá decisiones basadas en datos reales, no suposiciones.'], ['🔗', 'Todo conectado', 'Productos, anuncios, campañas y clientes en un solo lugar.'], ['📊', 'Mejores resultados', 'Más ventas, mejor ROAS y crecimiento constante.'], ['🛡️', 'Seguridad total', 'Tus datos protegidos con encriptación de nivel empresarial.']];
   return (
@@ -389,6 +452,11 @@ function Beneficios() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, marginBottom: 26 }}>
         {cards.map(([ic, t, d], i) => <Fade key={t} delay={i * 60}><div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: 16, padding: 22, height: '100%' }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${P.violet}22`, display: 'grid', placeItems: 'center', fontSize: 20, marginBottom: 14 }}>{ic}</div><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{t}</div><div style={{ fontSize: 13.5, color: P.muted, lineHeight: 1.55 }}>{d}</div></div></Fade>)}
       </div>
+      <Fade><div style={{ marginBottom: 26 }}>
+        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 18, marginBottom: 3 }}>Integraciones</div>
+        <div style={{ color: P.muted, fontSize: 13 }}>Todo conectado. Todo sincronizado.</div>
+        <RadialGraph platforms={['Meta', 'Google Ads', 'TikTok', 'Instagram', 'Facebook', 'WhatsApp']} />
+      </div></Fade>
       <Fade><div style={{ background: `linear-gradient(120deg,${P.violet}2e,${P.card})`, border: `1px solid ${P.violet}44`, borderRadius: 18, padding: 'clamp(20px,3vw,30px)', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ width: 56, height: 56, borderRadius: 15, background: `linear-gradient(135deg,${P.violet},${P.violetD})`, display: 'grid', placeItems: 'center', fontSize: 26 }}>🚀</div>
         <div style={{ flex: 1, minWidth: 240 }}><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 22 }}>Automatizá. Optimizá. Escalá.</div><div style={{ color: P.muted, fontSize: 14, marginTop: 4 }}>CONVERSIA trabaja por vos para que vos te enfoques en lo que más importa: hacer crecer tu negocio.</div></div>
@@ -425,7 +493,18 @@ function Testimonios() {
             <div style={{ flex: 1, background: `linear-gradient(150deg,${P.green}1e,${P.card})`, border: `1px solid ${P.green}33`, borderRadius: 14, padding: 16 }}><div style={{ fontSize: 22, marginBottom: 6 }}>📈</div><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 24, color: P.green }}>+324%</div><div style={{ fontSize: 12, color: P.muted }}>Crecimiento promedio en campañas activas</div></div>
             <div style={{ flex: 1, background: `linear-gradient(150deg,${P.blue}1e,${P.card})`, border: `1px solid ${P.blue}33`, borderRadius: 14, padding: 16 }}><div style={{ fontSize: 22, marginBottom: 6 }}>💙</div><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 24, color: P.blue }}>98%</div><div style={{ fontSize: 12, color: P.muted }}>Clientes satisfechos con los resultados</div></div>
           </div>
-          <AppFrame active="Inicio" title="Rendimiento general"><DashHome /></AppFrame>
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1, minWidth: 0 }}><AppFrame active="Inicio" title="Rendimiento general"><DashHome /></AppFrame></div>
+            <div className="lp-floattag"><Phone>
+              <div style={{ padding: 10 }}>
+                <div style={{ height: 44, borderRadius: 8, background: `linear-gradient(135deg,${P.violet}55,${P.card})`, display: 'grid', placeItems: 'center', marginBottom: 8 }}><Logo size={22} /></div>
+                <div style={{ fontSize: 11, fontWeight: 700 }}>Campaña en curso</div>
+                <div style={{ fontSize: 9, color: P.green, marginBottom: 8 }}>● Activa</div>
+                {[['Impresiones', '1,2M', '32%'], ['Clics', '54.2K', '28%'], ['Ventas', '8.4K', '41%']].map(([l, v, d]) => <div key={l} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '4px 0', borderBottom: `1px solid ${P.border}` }}><span style={{ fontSize: 10, color: P.dim }}>{l}</span><span style={{ fontSize: 12, fontWeight: 700 }}>{v} <span style={{ fontSize: 8, color: P.green }}>↑{d}</span></span></div>)}
+                <div style={{ marginTop: 8, background: P.violet, color: '#fff', textAlign: 'center', borderRadius: 8, padding: '6px', fontSize: 10.5, fontWeight: 700 }}>Ver detalles →</div>
+              </div>
+            </Phone></div>
+          </div>
           <div style={{ marginTop: 14, background: `linear-gradient(120deg,${P.violet},${P.violetD})`, borderRadius: 16, padding: 20, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 200 }}><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: '#fff' }}>Tu próximo cliente puede estar a una campaña de distancia.</div><div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.85)', marginTop: 4 }}>Dejá que la IA haga el trabajo. Vos enfocate en hacer crecer tu negocio.</div></div>
             <Btn variant="white">Empezar gratis →</Btn>
