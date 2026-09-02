@@ -86,21 +86,21 @@ export default function Integrations() {
     setSuccess(p => ({ ...p, [id]: '' }));
   };
 
-  function IntegCard({ id, icon, title, required, hint, children }: {
-    id: IntegId; icon: string; title: string; required?: boolean; hint?: string; children: React.ReactNode;
+  function IntegCard({ id, icon, title, color, required, hint, children }: {
+    id: IntegId; icon: string; title: string; color: string; required?: boolean; hint?: string; children: React.ReactNode;
   }) {
     const isConn = connected[id];
     return (
-      <div className="card fade-in" style={{ marginBottom: 14, border: isConn ? `1.5px solid ${C.green}44` : `1px solid ${C.border}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 14 }}>
-          <span style={{ fontSize: 24 }}>{icon}</span>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 600, fontSize: 14 }}>{title}</span>
-              {required && <Tag t="tr">Requerido</Tag>}
-              {isConn && <Tag t="tg">✓ Conectado</Tag>}
+      <div className="cv-card fade-in" style={{ marginBottom: 16, padding: 20, border: isConn ? `1.5px solid ${C.green}55` : `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 16 }}>
+          <span style={{ width: 46, height: 46, borderRadius: 13, flexShrink: 0, background: `${color}22`, border: `1px solid ${color}44`, display: 'grid', placeItems: 'center', fontSize: 23 }}>{icon}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 16 }}>{title}</span>
+              {required && !isConn && <Tag t="tr">Requerido</Tag>}
+              {isConn ? <Tag t="tg">● Conectado</Tag> : <Tag t="tb">○ Sin conectar</Tag>}
             </div>
-            {hint && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{hint}</div>}
+            {hint && <div style={{ fontSize: 12.5, color: C.textMuted, marginTop: 3 }}>{hint}</div>}
           </div>
           {isConn && (
             <button className="btn btn-d" style={{ fontSize: 12, padding: '5px 11px' }} onClick={() => disconnect(id)}>Desconectar</button>
@@ -139,13 +139,17 @@ export default function Integrations() {
   }
 
   return (
-    <div className="content fade-in" style={{ maxWidth: 740 }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 3 }}>Integraciones</div>
-        <div style={{ fontSize: 13, color: C.textMuted }}>Conectá tus cuentas para activar la automatización completa. Las credenciales se cifran con AES-256-GCM.</div>
+    <div className="content fade-in" style={{ maxWidth: 760 }}>
+      <div style={{ marginBottom: 22 }}>
+        <h1 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 26, margin: '0 0 5px' }}>Integraciones</h1>
+        <div style={{ fontSize: 14, color: C.textMuted }}>Conectá tus cuentas para activar la automatización completa. Las credenciales se cifran con AES-256-GCM.</div>
+        <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: C.textMuted, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 999, padding: '6px 13px' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.green }} />
+          {Object.values(connected).filter(Boolean).length} de 4 conectadas
+        </div>
       </div>
 
-      <IntegCard id="meta" icon="📘" title="Meta Ads" required hint="Requerido para crear y gestionar campañas en Facebook e Instagram">
+      <IntegCard id="meta" icon="📘" title="Meta Ads" color="#1877f2" required hint="Requerido para crear y gestionar campañas en Facebook e Instagram">
         <div style={{ background: C.amberDim, border: `1px solid ${C.amber}33`, borderRadius: 8, padding: '9px 12px', marginBottom: 13, fontSize: 12, color: C.amber }}>
           ⚠️ Necesitás un Access Token de larga duración con permisos ads_management.
         </div>
@@ -177,7 +181,7 @@ export default function Integrations() {
         </div>
       </IntegCard>
 
-      <IntegCard id="whatsapp" icon="💬" title="WhatsApp Business API" required hint="Requerido para redirigir leads con tracking de conversaciones">
+      <IntegCard id="whatsapp" icon="💬" title="WhatsApp Business API" color="#25d366" required hint="Requerido para redirigir leads con tracking de conversaciones">
         <div style={{ background: C.accentDim, border: `1px solid ${C.accent}33`, borderRadius: 8, padding: '9px 12px', marginBottom: 13, fontSize: 12, color: C.accent }}>
           💡 Necesitás WhatsApp Business API (Meta).
         </div>
@@ -197,7 +201,7 @@ export default function Integrations() {
         </div>
       </IntegCard>
 
-      <IntegCard id="stripe" icon="💳" title="Stripe" hint="Para gestionar pagos propios si ofrecés tu plataforma a clientes">
+      <IntegCard id="stripe" icon="💳" title="Stripe" color="#635bff" hint="Para gestionar pagos propios si ofrecés tu plataforma a clientes">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           <div className="fg">
             <label className="flbl">Secret Key <span style={{ color: C.red }}>*</span></label>
@@ -210,7 +214,7 @@ export default function Integrations() {
         </div>
       </IntegCard>
 
-      <IntegCard id="instagram" icon="📸" title="Instagram Business" hint="Para anuncios en Instagram Stories y Reels">
+      <IntegCard id="instagram" icon="📸" title="Instagram Business" color="#e1306c" hint="Para anuncios en Instagram Stories y Reels">
         <div className="fg">
           <label className="flbl">Instagram Account ID</label>
           <input className="finput" placeholder="17841xxxxxxxxx" value={forms.instagram.accountId} onChange={e => setF('instagram', 'accountId', e.target.value)} />
