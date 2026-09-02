@@ -16,7 +16,7 @@ const GROUPS: { key: GroupKey; label: string; color: string }[] = [
 ];
 
 // Canvas de flujo: grupos (Aporte→Generación→Producción), nodos con media, minimapa y Copiloto (externo).
-export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCost, onAddScene, onDeleteScene, finalVideoUrl, assembling, onAssemble, productImage }: {
+export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCost, onAddScene, onDeleteScene, finalVideoUrl, assembling, onAssemble, productImage, onCancel }: {
   plan: { creator: string; scenes: UgcScene[] };
   runs: Record<string, SceneRun>;
   running: boolean;
@@ -28,6 +28,7 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
   assembling?: boolean;
   onAssemble?: () => void;
   productImage?: string;
+  onCancel?: () => void;
 }) {
   const [zoom, setZoom] = useState(0.7);
   const [pan, setPan] = useState({ x: 30, y: 20 });
@@ -35,6 +36,8 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
 
   const doneCount = plan.scenes.filter(s => runs[s.key]?.status === 'done').length;
+  const runningCount = plan.scenes.filter(s => runs[s.key]?.status === 'running').length;
+  const queued = Math.max(0, plan.scenes.length - doneCount - runningCount);
 
   // Layout en 3 columnas por grupo
   const nodes: GNode[] = [];
@@ -77,11 +80,26 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
         <div style={{ background: '#0f0f1a', border: `1px solid ${C.border}`, borderRadius: 10, padding: '6px 12px', fontSize: 12, color: C.textMuted, pointerEvents: 'auto' }}>
           Flujo · <b style={{ color: C.text }}>{nodes.length} nodos</b> · {doneCount}/{plan.scenes.length} escenas · <b style={{ color: C.accent }}>{totalCost} créditos</b>
         </div>
-        <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
-          <button onClick={() => onAddScene()} style={tbtn}>+ Nodo</button>
-          {finalDone && !finalVideoUrl && onAssemble && <button onClick={onAssemble} disabled={assembling} style={{ ...tbtn, background: C.gradGreen, color: '#04140d', border: 'none', fontWeight: 700 }}>{assembling ? 'Ensamblando…' : '🎬 Ensamblar'}</button>}
-          <button onClick={onRunAll} disabled={running} style={{ ...tbtn, background: C.accent, color: '#fff', border: 'none', fontWeight: 700 }}>{running ? 'Ejecutando…' : '▶ Ejecutar todo'}</button>
+        <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto', alignItems: 'center' }}>
+          {running ? (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#0f0f1a', border: `1px solid ${C.amber}66`, borderRadius: 10, padding: '7px 13px', fontSize: 12.5, color: C.text }}>
+                <span style={{ width: 13, height: 13, borderRadius: '50%', border: `2px solid ${C.surface2}`, borderTopColor: C.amber, display: 'inline-block', animation: 'cvspin 1s linear infinite' }} />
+                <b>{doneCount}/{plan.scenes.length}</b>
+                <span style={{ color: C.amber }}>· {runningCount} generando</span>
+                {queued > 0 && <span style={{ color: C.textMuted }}>· {queued} en cola</span>}
+              </div>
+              {onCancel && <button onClick={onCancel} style={{ ...tbtn, borderColor: C.red, color: C.red }}>✕ Cancelar</button>}
+            </>
+          ) : (
+            <>
+              <button onClick={() => onAddScene()} style={tbtn}>+ Nodo</button>
+              {finalDone && !finalVideoUrl && onAssemble && <button onClick={onAssemble} disabled={assembling} style={{ ...tbtn, background: C.gradGreen, color: '#04140d', border: 'none', fontWeight: 700 }}>{assembling ? 'Ensamblando…' : '🎬 Ensamblar'}</button>}
+              <button onClick={onRunAll} style={{ ...tbtn, background: C.accent, color: '#fff', border: 'none', fontWeight: 700 }}>▶ Ejecutar todo</button>
+            </>
+          )}
         </div>
+        <style>{`@keyframes cvspin{to{transform:rotate(360deg)}}`}</style>
       </div>
 
       {/* Lienzo */}

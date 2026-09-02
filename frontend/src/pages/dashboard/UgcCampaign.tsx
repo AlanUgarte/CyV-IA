@@ -70,12 +70,16 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
     finally { setPlanning(false); }
   };
 
+  const cancelRef = useRef(false);
+  const cancelRun = () => { cancelRef.current = true; };
   const runAll = async () => {
     if (!plan) return;
     if (!window.confirm(`Generar la campaña completa usará ${totalCost} créditos (${plan.scenes.length} escenas × ${sceneCost}). Tenés ${credits}. ¿Continuar?`)) return;
+    cancelRef.current = false;
     setRunning(true); setErr(null);
     pushMsg('copilot', `Generando la campaña — ${plan.scenes.length} escenas con Seedance. Te aviso escena por escena…`);
     for (let i = 0; i < plan.scenes.length; i++) {
+      if (cancelRef.current) { pushMsg('copilot', '⏸ Generación cancelada. Los nodos ya listos quedan guardados.'); break; }
       const scene = plan.scenes[i];
       setRuns(r => ({ ...r, [scene.key]: { ...r[scene.key], status: 'running' } }));
       try {
@@ -280,7 +284,7 @@ export default function UgcCampaign({ costs, credits, setCredits }: { costs: Rec
         <div style={{ flex: 1, minWidth: 0 }}>
           <CampaignCanvas plan={viewPlan} runs={runs} running={running} totalCost={totalCost} productImage={imageBase64}
             onRunAll={plan ? runAll : () => pushMsg('copilot', 'Primero contame qué producto querés promocionar (escribilo en el chat) y armo los nodos por vos.')}
-            onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} />
+            onAddScene={addScene} onDeleteScene={deleteScene} finalVideoUrl={finalVideoUrl} assembling={assembling} onAssemble={assembleFinal} onCancel={cancelRun} />
         </div>
         <CopilotPanel messages={messages} running={running || planning} planned={!!plan} onGenerate={runAll} onSend={handleCopilot} onAttach={onCopilotAttach} />
       </div>
@@ -305,6 +309,21 @@ function CopilotPanel({ messages, running, planned, onGenerate, onSend, onAttach
         {messages.map((m, i) => (
           <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%', background: m.role === 'user' ? C.accent : C.surface2, color: m.role === 'user' ? '#fff' : C.text, borderRadius: 12, padding: '9px 12px', fontSize: 13, lineHeight: 1.5, border: m.role === 'user' ? 'none' : `1px solid ${C.border}` }}>{m.text}</div>
         ))}
+        {!planned && !running && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+            <div style={{ fontSize: 11.5, color: C.textMuted, fontWeight: 600, letterSpacing: 0.3 }}>¿Qué querés crear?</div>
+            {[
+              { ic: '🎬', t: 'Anuncio UGC con un presentador', send: 'Quiero un anuncio UGC con un presentador de mi producto' },
+              { ic: '🖼️', t: 'Anuncio de imagen de mi producto', send: 'Quiero un anuncio de imagen de mi producto' },
+              { ic: '✍️', t: 'Ya tengo un guion', send: 'Ya tengo un guion para el anuncio' },
+              { ic: '📦', t: 'Mostrar mi producto en video', send: 'Quiero un video mostrando mi producto' },
+            ].map(q => (
+              <button key={q.t} onClick={() => onSend(q.send)} className="cv-lift" style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 11, padding: '10px 12px', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                <span style={{ width: 26, height: 26, borderRadius: 8, background: C.accentDim, display: 'grid', placeItems: 'center', fontSize: 14, flexShrink: 0 }}>{q.ic}</span>{q.t}
+              </button>
+            ))}
+          </div>
+        )}
         {running && <div style={{ alignSelf: 'flex-start', color: C.textMuted, fontSize: 13, padding: '4px 8px' }}>● ● ●</div>}
         <div ref={endRef} />
       </div>
