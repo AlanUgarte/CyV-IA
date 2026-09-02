@@ -21,6 +21,20 @@ export class CreditsService {
     private readonly storage: StorageService,
   ) {}
 
+  // Plan gratis: usuario que nunca pagó (sin recarga aprobada) y no es admin.
+  async isFreeUser(userId: string, role?: string): Promise<boolean> {
+    if (role === 'admin') return false;
+    const { rows } = await this.db.query(
+      `SELECT 1 FROM credit_purchases WHERE user_id = $1 AND status = 'approved' LIMIT 1`, [userId]);
+    return rows.length === 0;
+  }
+  // Cantidad de imágenes ya generadas por el usuario (para el límite del plan gratis).
+  async imageCount(userId: string): Promise<number> {
+    const { rows } = await this.db.query(
+      `SELECT COUNT(*)::int AS n FROM ai_generations WHERE user_id = $1 AND operation LIKE 'image%' AND status = 'completed'`, [userId]);
+    return rows[0]?.n ?? 0;
+  }
+
   async balance(userId: string): Promise<number> {
     const { rows } = await this.db.query('SELECT ai_credits FROM users WHERE id = $1', [userId]);
     return rows[0]?.ai_credits ?? 0;

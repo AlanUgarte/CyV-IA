@@ -100,7 +100,7 @@ Devolvé JSON: { "chosenStyle": string (una de las claves de estilo), "concept":
   async generateImageVariants(input: {
     product: ProductInfo; objective: string; style: string; format: Fmt;
     quality?: 'standard' | 'premium'; referenceImage?: string;
-  }): Promise<Array<{ key: string; label: string; description: string; prompt: string; url: string; model: string }>> {
+  }, limit = 3): Promise<Array<{ key: string; label: string; description: string; prompt: string; url: string; model: string }>> {
     const styleDesc = STYLES[input.style] ?? STYLES.profesional;
     const objGuide = OBJECTIVES[input.objective] ?? OBJECTIVES.vender;
 
@@ -114,7 +114,7 @@ JSON: [ { "key": "oferta", "prompt": "..." }, { "key": "premium", "prompt": "...
     );
 
     const out: Array<{ key: string; label: string; description: string; prompt: string; url: string; model: string }> = [];
-    for (const angle of VARIANT_ANGLES) {
+    for (const angle of VARIANT_ANGLES.slice(0, limit)) {
       const p = prompts.find(x => x.key === angle.key)?.prompt
         ?? `${input.product.name}, ${styleDesc}, ${angle.desc}, professional Meta Ads creative, photorealistic, no watermark`;
       const r = await this.imageProvider.generate({ prompt: p, format: input.format, quality: input.quality ?? 'standard', referenceImage: input.referenceImage });

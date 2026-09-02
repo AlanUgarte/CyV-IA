@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, Request, UseGuards, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Request, UseGuards, HttpCode, HttpStatus, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -47,6 +47,17 @@ export class CreativeController {
     }
   }
 
+  // Límites del plan gratis: 2 imágenes en total y sin video (hasta recargar créditos).
+  private static readonly FREE_IMAGE_LIMIT = 2;
+  private async assertFree(req: any, kind: 'image' | 'video'): Promise<{ free: boolean; remaining: number }> {
+    const free = await this.credits.isFreeUser(req.user.id, req.user.role);
+    if (!free) return { free: false, remaining: Infinity };
+    if (kind === 'video') throw new ForbiddenException('Los videos están disponibles al recargar créditos. El plan gratis incluye 2 imágenes.');
+    const remaining = CreativeController.FREE_IMAGE_LIMIT - await this.credits.imageCount(req.user.id);
+    if (remaining <= 0) throw new ForbiddenException('Alcanzaste el límite de 2 imágenes del plan gratis. Recargá créditos para seguir generando.');
+    return { free: true, remaining };
+  }
+
   @Get('costs')
   async costs(@Request() req: any) { return { costs: CREDIT_COSTS, credits: await this.credits.balance(req.user.id) }; }
 
@@ -66,16 +77,19 @@ export class CreativeController {
   @Post('images') @HttpCode(HttpStatus.OK)
   @Throttle({ medium: { limit: 15, ttl: 60000 } })
   async images(@Body() body: { product: ProductInfo; objective: string; style: string; format: Fmt; quality?: 'standard' | 'premium'; referenceImage?: string }, @Request() req: any) {
+    const { remaining } = await this.assertFree(req, 'image');
     const op: CreditOperation = body.quality === 'premium' ? 'image_premium' : 'image_standard';
-    const amount = CREDIT_COSTS[op] * 3;
+    const count = Math.min(3, remaining);
+    const amount = CREDIT_COSTS[op] * count;
     const { result, credits, creditsUsed } = await this.billed(req, { operation: op, amount, provider: PROVIDERS.image, model: PROVIDERS.openaiImageModel },
-      () => this.svc.generateImageVariants(body));
+      () => this.svc.generateImageVariants(body, count));
     return { variants: result, credits, creditsUsed };
   }
 
   // Regenerar una variante
   @Post('image') @HttpCode(HttpStatus.OK)
   async image(@Body() body: { product: ProductInfo; objective: string; style: string; format: Fmt; angleKey?: string; quality?: 'standard' | 'premium'; referenceImage?: string }, @Request() req: any) {
+    await this.assertFree(req, 'image');
     const op: CreditOperation = body.quality === 'premium' ? 'image_premium' : 'image_standard';
     const { result, credits, creditsUsed } = await this.billed(req, { operation: op, amount: CREDIT_COSTS[op], provider: PROVIDERS.image, model: PROVIDERS.openaiImageModel },
       () => this.svc.generateSingleImage(body));
@@ -86,6 +100,7 @@ export class CreativeController {
   @Post('video') @HttpCode(HttpStatus.OK)
   @Throttle({ medium: { limit: 10, ttl: 60000 } })
   async video(@Body() body: { imageBase64: string; product: ProductInfo; style: string; duration: '5' | '10' }, @Request() req: any) {
+    await this.assertFree(req, 'video');
     const seconds = body.duration === '10' ? 10 : 5;
     const op: CreditOperation = seconds === 10 ? 'video_10' : 'video_5';
     const { result, credits, creditsUsed } = await this.billed(req, { operation: op, amount: CREDIT_COSTS[op], provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds },
@@ -111,6 +126,7 @@ export class CreativeController {
   @Post('ugc') @HttpCode(HttpStatus.OK)
   @Throttle({ medium: { limit: 8, ttl: 60000 } })
   async ugc(@Body() body: any, @Request() req: any) {
+    await this.assertFree(req, 'video');
     const { result, credits, creditsUsed } = await this.billed(req,
       { operation: 'ugc_video_10', amount: CREDIT_COSTS.ugc_video_10, provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds: 10 },
       () => this.svc.generateUGC(body));
@@ -125,6 +141,7 @@ export class CreativeController {
   @Post('ugc-campaign/scene') @HttpCode(HttpStatus.OK)
   @Throttle({ medium: { limit: 12, ttl: 60000 } })
   async ugcScene(@Body() body: any, @Request() req: any) {
+    await this.assertFree(req, 'video');
     const { result, credits, creditsUsed } = await this.billed(req,
       { operation: 'ugc_video_10', amount: CREDIT_COSTS.ugc_video_10, provider: PROVIDERS.video, model: PROVIDERS.seedance.model, seconds: 10 },
       () => this.svc.generateUGCScene(body));
