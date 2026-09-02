@@ -11,6 +11,21 @@ export default function AdminCosts() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [targetMargin, setTargetMargin] = useState(70); // % margen objetivo
 
+  // Editables (persistidos en este navegador)
+  const [infra, setInfra] = useState<{ name: string; amt: number }[]>(() => {
+    try { const s = localStorage.getItem('cv_infra'); if (s) return JSON.parse(s); } catch { /* */ }
+    return [{ name: 'Railway (backend + DB)', amt: 5 }, { name: 'Vercel (frontend)', amt: 0 }, { name: 'AWS S3 (almacenamiento)', amt: 2 }, { name: 'Dominio', amt: 1 }, { name: 'Otros', amt: 0 }];
+  });
+  const [clientsByPlan, setClientsByPlan] = useState<Record<string, number>>(() => {
+    try { const s = localStorage.getItem('cv_clients'); if (s) return JSON.parse(s); } catch { /* */ } return {};
+  });
+  const [usagePct, setUsagePct] = useState<number>(() => {
+    try { const s = localStorage.getItem('cv_usage'); if (s) return +s; } catch { /* */ } return 80;
+  });
+  useEffect(() => { try { localStorage.setItem('cv_infra', JSON.stringify(infra)); } catch { /* */ } }, [infra]);
+  useEffect(() => { try { localStorage.setItem('cv_clients', JSON.stringify(clientsByPlan)); } catch { /* */ } }, [clientsByPlan]);
+  useEffect(() => { try { localStorage.setItem('cv_usage', String(usagePct)); } catch { /* */ } }, [usagePct]);
+
   useEffect(() => {
     creditsApi.adminMetrics().then(setMetrics).catch(() => setMetrics({}));
     creditsApi.costs().then(r => { setCosts(r.costs || {}); setCreditValueUsd(r.creditValueUsd || 0); }).catch(() => {});
@@ -39,6 +54,30 @@ export default function AdminCosts() {
 
   const money = (n: number) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
   const pctColor = (p: number) => p >= 60 ? C.green : p >= 30 ? C.amber : C.red;
+
+  // ── Gasto real del software (este mes) ──────────────────────────────────────
+  const infraTotal = infra.reduce((a, b) => a + (+b.amt || 0), 0);
+  const aiMonth = +(m.ai_cost_month_usd ?? aiCost);        // gasto IA del mes (o acumulado si el backend no lo trae)
+  const revenueReal = +(m.revenue_usd ?? 0);               // ingreso real acumulado (recargas aprobadas)
+  const revenueMonth = +(m.revenue_month_usd ?? 0);        // ingreso real del mes
+  const softwareCostMonth = aiMonth + infraTotal;          // gasto total del software este mes
+  const netMonth = revenueMonth - softwareCostMonth;       // ganancia neta real del mes
+  const costRef = costPerCredit > 0 ? costPerCredit : 0.06; // costo de referencia por crédito (conservador sin datos)
+
+  // ── Proyección por clientes / suscripciones ─────────────────────────────────
+  const proj = plans.map(p => {
+    const n = clientsByPlan[p.key] ?? 0;
+    const income = (p.priceUsd ?? 0) * n;
+    const aiCostTotal = (p.monthlyCredits ?? 0) * (usagePct / 100) * costRef * n;
+    return { p, n, income, aiCostTotal, marginUsd: income - aiCostTotal };
+  });
+  const projIncome = proj.reduce((a, b) => a + b.income, 0);
+  const projAiCost = proj.reduce((a, b) => a + b.aiCostTotal, 0);
+  const projNet = projIncome - projAiCost - infraTotal;
+  const projMarginPct = projIncome > 0 ? (projNet / projIncome) * 100 : 0;
+  const refPlan = plans.find(p => p.key === 'pro') ?? plans[1] ?? plans[0];
+  const refContribution = refPlan ? (refPlan.priceUsd - (refPlan.monthlyCredits * (usagePct / 100) * costRef)) : 0;
+  const breakEven = refContribution > 0 ? Math.ceil(infraTotal / refContribution) : 0;
 
   if (!metrics) return <div style={{ padding: 20 }}><Spinner size={24} /></div>;
 
@@ -116,6 +155,56 @@ export default function AdminCosts() {
           (m.byModel as any[]).map((r, i) => <Row key={i} cells={[r.provider, r.model, `${r.n}`, money(+r.cost)]} />)}
       </div>
 
+      {/* Gasto real del software */}
+      <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 12px' }}>Gasto real del software (este mes)</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, marginBottom: 26 }}>
+        <div style={card}>
+          <div style={{ fontWeight: 700, marginBottom: 12 }}>Infraestructura fija / mes <span style={{ color: C.textDim, fontWeight: 400, fontSize: 12 }}>(editable)</span></div>
+          {infra.map((it, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <input value={it.name} onChange={e => setInfra(inf => inf.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} style={{ ...inputS, flex: 1 }} />
+              <span style={{ color: C.textDim }}>$</span>
+              <input type="number" value={it.amt} onChange={e => setInfra(inf => inf.map((x, j) => j === i ? { ...x, amt: +e.target.value } : x))} style={{ ...inputS, width: 76, textAlign: 'right' }} />
+            </div>
+          ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${C.border}`, paddingTop: 10, marginTop: 4, fontWeight: 700 }}><span>Total infra</span><span style={{ color: C.amber }}>{money(infraTotal)}/mes</span></div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Stat label="Gasto IA (este mes)" value={money(aiMonth)} color={C.amber} sub="Proveedores de IA (pago por uso)" />
+          <Stat label="Gasto total del software" value={money(softwareCostMonth)} color={C.amber} sub={`IA ${money(aiMonth)} + infra ${money(infraTotal)}`} />
+          <Stat label="Ingreso real (recargas del mes)" value={money(revenueMonth)} color={C.blue} sub={`Acumulado histórico: ${money(revenueReal)}`} />
+          <Stat label="Ganancia neta del mes" value={money(netMonth)} color={netMonth >= 0 ? C.green : C.red} sub={netMonth >= 0 ? 'En positivo ✅' : 'En rojo — revisá precios/uso ⚠️'} />
+        </div>
+      </div>
+
+      {/* Comparación por clientes / suscripciones */}
+      <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 12px' }}>Comparación por clientes / suscripciones</h3>
+      <div style={{ ...card, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <label style={{ fontSize: 13, color: C.textMuted }}>Uso de créditos por cliente</label>
+          <input type="range" min={10} max={100} value={usagePct} onChange={e => setUsagePct(+e.target.value)} style={{ flex: 1, minWidth: 160, accentColor: C.accent }} />
+          <b style={{ fontFamily: "'Syne',sans-serif", fontSize: 18, color: pctColor(100 - usagePct) }}>{usagePct}%</b>
+          <span style={{ fontSize: 12, color: C.textDim }}>· costo ref. <b style={{ color: C.textMuted }}>{money(costRef)}</b>/crédito {costPerCredit > 0 ? '(real)' : '(estimado)'}</span>
+        </div>
+      </div>
+      <div style={{ ...card, padding: 0, overflow: 'hidden', marginBottom: 12 }}>
+        <Row head cells={['Plan', 'Clientes', 'Precio', 'Ingreso', 'Costo IA', 'Ganancia']} />
+        {proj.length === 0 ? <div style={{ padding: 16, color: C.textMuted, fontSize: 13 }}>Sin planes cargados.</div> : proj.map(({ p, n, income, aiCostTotal, marginUsd }) => (
+          <Row key={p.key} cells={[
+            p.name,
+            <input type="number" value={n} onChange={e => setClientsByPlan(c => ({ ...c, [p.key]: Math.max(0, +e.target.value) }))} style={{ ...inputS, width: 66, textAlign: 'right' }} />,
+            money(p.priceUsd ?? 0), money(income), money(aiCostTotal),
+            <span style={{ color: marginUsd >= 0 ? C.green : C.red, fontWeight: 700 }}>{money(marginUsd)}</span>,
+          ]} />
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 26 }}>
+        <Stat label="Ingreso proyectado" value={money(projIncome)} color={C.blue} sub="Suscripciones / mes" />
+        <Stat label="Costo total (IA + infra)" value={money(projAiCost + infraTotal)} color={C.amber} sub={`IA ${money(projAiCost)} + infra ${money(infraTotal)}`} />
+        <Stat label="Ganancia neta proyectada" value={money(projNet)} color={projNet >= 0 ? C.green : C.red} sub={`${projMarginPct.toFixed(0)}% de margen`} />
+        <Stat label="Punto de equilibrio" value={breakEven > 0 ? `${breakEven} ${refPlan?.name ?? ''}` : '—'} sub="clientes para cubrir la infra" />
+      </div>
+
       {/* Planes vs costo */}
       {plans.length > 0 && (
         <>
@@ -165,3 +254,4 @@ function Row({ cells, head }: { cells: React.ReactNode[]; head?: boolean }) {
 }
 
 const card: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 };
+const inputS: React.CSSProperties = { background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 9px', color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' };

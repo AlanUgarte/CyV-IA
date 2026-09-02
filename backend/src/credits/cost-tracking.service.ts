@@ -41,6 +41,28 @@ export class CostTrackingService {
     const { rows: byModel } = await this.db.query(
       `SELECT provider, model, COUNT(*)::int AS n, COALESCE(SUM(estimated_provider_cost_usd),0)::float AS cost
        FROM ai_generations GROUP BY provider, model ORDER BY n DESC LIMIT 20`);
-    return { ...rows[0], byModel };
+
+    // Extras defensivos: gasto del mes + ingreso real por recargas aprobadas (no rompen si fallan)
+    let extra: Record<string, number> = {};
+    try {
+      const { rows: mo } = await this.db.query(
+        `SELECT COALESCE(SUM(estimated_provider_cost_usd),0)::float AS ai_cost_month_usd,
+                COALESCE(SUM(credits_consumed),0)::int AS credits_month
+         FROM ai_generations WHERE created_at >= date_trunc('month', now())`);
+      extra = { ...extra, ...mo[0] };
+    } catch { /* ignore */ }
+    try {
+      const { rows: rev } = await this.db.query(
+        `SELECT COALESCE(SUM(amount_usd),0)::float AS revenue_usd,
+                COUNT(*)::int AS topups_approved,
+                COUNT(DISTINCT user_id)::int AS paying_users
+         FROM credit_purchases WHERE status='approved'`);
+      const { rows: revM } = await this.db.query(
+        `SELECT COALESCE(SUM(amount_usd),0)::float AS revenue_month_usd
+         FROM credit_purchases WHERE status='approved' AND reviewed_at >= date_trunc('month', now())`);
+      extra = { ...extra, ...rev[0], ...revM[0] };
+    } catch { /* ignore */ }
+
+    return { ...rows[0], ...extra, byModel };
   }
 }
