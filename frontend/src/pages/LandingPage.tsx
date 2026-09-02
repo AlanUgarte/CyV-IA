@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // ── Paleta Conversia ─────────────────────────────────────────────────────────
 const P = {
-  bg: '#07070e', bg2: '#0a0a14', card: '#0f0f1c', card2: '#101020', border: '#1c1c2e', border2: '#2a2a42',
+  bg: '#000000', bg2: '#0a0a14', card: '#0f0f1c', card2: '#101020', border: '#1c1c2e', border2: '#2a2a42',
   text: '#f3f1fb', muted: '#a49ec4', dim: '#6d6790',
   violet: '#7c5cfc', violet2: '#a78bfa', violetD: '#4a2fd0',
   green: '#2fd39b', blue: '#4b9bff', pink: '#f065a7', amber: '#ffb15c', red: '#ff5c7a',
@@ -46,7 +46,7 @@ function Pill({ children }: { children: ReactNode }) {
 function Check({ children }: { children: ReactNode }) {
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: P.muted }}><span style={{ color: P.green }}>✓</span>{children}</span>;
 }
-function eyebrowLabel(n: number, t: string) { return <div style={{ ...eyebrow, color: P.dim }}>Section {n} — {t}</div>; }
+const frameStyle: CSSProperties = { background: 'linear-gradient(180deg,#0b0b15,#070710)', border: '1px solid #18182a', borderRadius: 30, padding: 'clamp(24px,3.8vw,54px)' };
 
 // ── Gráficos ─────────────────────────────────────────────────────────────────
 function Area({ color = P.violet, tip }: { color?: string; tip?: string }) {
@@ -142,16 +142,26 @@ function DashHome() {
 }
 
 // ── Secciones ────────────────────────────────────────────────────────────────
-function Section({ children, id, style }: { children: ReactNode; id?: string; style?: CSSProperties }) {
-  return <section id={id} style={{ padding: 'clamp(60px,9vw,120px) 0', ...style }}><div style={wrap}>{children}</div></section>;
+function Section({ children, id, n, label, style }: { children: ReactNode; id?: string; n?: number; label?: string; style?: CSSProperties }) {
+  return (
+    <section id={id} style={{ padding: 'clamp(24px,4vw,50px) 0', ...style }}>
+      <div style={wrap}>
+        {n && <div style={{ ...eyebrow, margin: '0 0 16px' }}>Section {n} — {label}</div>}
+        <div style={frameStyle}>{children}</div>
+      </div>
+    </section>
+  );
 }
 
 function Hero({ toRegister, toLogin }: { toRegister: () => void; toLogin: () => void }) {
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', paddingBottom: 40 }}>
-      <div style={{ position: 'absolute', top: -160, right: -120, width: 620, height: 620, background: `radial-gradient(circle,${P.violet}22,transparent 62%)`, filter: 'blur(20px)', pointerEvents: 'none' }} />
-      {/* Nav */}
-      <nav style={{ ...wrap, display: 'flex', alignItems: 'center', gap: 20, padding: '22px clamp(18px,4vw,40px)' }}>
+    <section style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(18px,3vw,36px) 0' }}>
+      <div style={wrap}>
+        <div style={{ ...eyebrow, margin: '0 0 16px' }}>Section 1 — Hero</div>
+        <div style={{ ...frameStyle, position: 'relative', overflow: 'hidden', padding: 'clamp(20px,2.6vw,36px)' }}>
+          <div style={{ position: 'absolute', top: -180, right: -120, width: 560, height: 560, background: `radial-gradient(circle,${P.violet}26,transparent 62%)`, filter: 'blur(18px)', pointerEvents: 'none' }} />
+          {/* Nav */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 20, position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 8 }}><Logo /><span style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 20, letterSpacing: '-.01em' }}>CONVERSIA</span></div>
         <div style={{ display: 'flex', gap: 22, marginLeft: 10 }} className="lp-navlinks">
           {[['Producto', 'beneficios'], ['Cómo funciona', 'como'], ['Resultados', 'resultados'], ['Precios', 'gracias']].map(([l, a]) => <a key={l} href={'#' + a} style={{ color: P.muted, fontSize: 14, textDecoration: 'none' }}>{l}</a>)}
@@ -161,11 +171,11 @@ function Hero({ toRegister, toLogin }: { toRegister: () => void; toLogin: () => 
           <Btn onClick={toRegister}>Empezar gratis</Btn>
         </div>
       </nav>
-      {/* Hero body */}
-      <div style={{ ...wrap, display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: 40, alignItems: 'center', paddingTop: 'clamp(30px,5vw,64px)', paddingBottom: 40 }} className="lp-hero">
+          {/* Hero body */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: 40, alignItems: 'center', paddingTop: 'clamp(26px,4vw,50px)', position: 'relative', zIndex: 2 }} className="lp-hero">
         <Fade>
           <Pill>🚀 La plataforma para tu publicidad</Pill>
-          <h1 style={{ ...H1, fontSize: 'clamp(34px,5.2vw,60px)', margin: '22px 0 20px' }}>Tu próximo cliente no debería depender de horas de trabajo. <span style={{ color: P.violet2 }}>Dejá que la IA cree, publique y optimice tus campañas.</span></h1>
+          <h1 style={{ ...H1, fontSize: 'clamp(30px,4.4vw,52px)', margin: '20px 0 18px' }}>Tu próximo cliente no debería depender de horas de trabajo. <span style={{ color: '#8878ff' }}>Dejá que la IA cree, publique y optimice tus campañas.</span></h1>
           <p style={{ color: P.muted, fontSize: 17, lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Subí tu producto. Creá una campaña en 2 minutos. Conversia se encarga de todo el trabajo pesado: desde los creativos y copys hasta la segmentación y el análisis.</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}>
             <Btn big onClick={toRegister}>Empezar gratis →</Btn>
@@ -182,6 +192,8 @@ function Hero({ toRegister, toLogin }: { toRegister: () => void; toLogin: () => 
             <FloatTag style={{ top: '44%', right: -22 }}>📈 Reportes generados</FloatTag>
           </div>
         </Fade>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -193,8 +205,7 @@ function FloatTag({ children, style }: { children: ReactNode; style?: CSSPropert
 function Problema() {
   const labels = ['Cambios en cada plataforma', 'Copys que no convierten', 'Múltiples cuentas', 'Datos por todos lados', 'Diseños que demoran horas', 'Publicaciones que nadie ve', 'Informes difíciles de entender'];
   return (
-    <Section>
-      {eyebrowLabel(2, 'Problema')}
+    <Section n={2} label="Problema">
       <Fade><h2 style={{ ...H1, fontSize: 'clamp(28px,4.4vw,46px)', maxWidth: 720 }}>Publicar anuncios no debería ser un trabajo de tiempo completo.</h2></Fade>
       <Fade delay={100}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 40, justifyContent: 'center' }}>
@@ -217,8 +228,7 @@ function Como() {
     { n: '04', ic: '📊', t: 'Recibís ventas mientras descansás.', d: 'Llegan clientes, se generan ventas y tu negocio crece en piloto automático. Vos solo mirás los resultados.' },
   ];
   return (
-    <Section id="como">
-      {eyebrowLabel(3, 'Cómo funciona')}
+    <Section id="como" n={3} label="Cómo funciona">
       <Fade><h2 style={{ ...H1, fontSize: 'clamp(28px,4.4vw,46px)', maxWidth: 640, marginBottom: 44 }}>De un producto a nuevos clientes. Automáticamente.</h2></Fade>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 16 }}>
         {steps.map((s, i) => (
@@ -240,8 +250,8 @@ function Inteligencia() {
   const outputs = [['📈', 'Mejores decisiones', 'La IA elige qué funciona mejor para vos.'], ['💲', 'Mayor rendimiento', 'Más conversiones, menor costo.'], ['✓', 'Crecimiento continuo', 'Aprende, se adapta y mejora sin parar.']];
   const steps = [['01', 'Análisis predictivo.', 'Detectamos patrones y oportunidades antes que nadie.'], ['02', 'Optimización automática.', 'Ajustamos pujas, anuncios y audiencias para máxima performance.'], ['03', 'Resultados en tiempo real.', 'Monitoreo 24/7 para que siempre estés un paso adelante.']];
   return (
-    <Section style={{ background: P.bg2 }}>
-      {eyebrowLabel(4, 'Inteligencia')}
+    <Section n={4} label="Inteligencia">
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center' }} className="lp-2col">
         <Fade>
           <h2 style={{ ...H1, fontSize: 'clamp(26px,4vw,42px)', marginBottom: 16 }}>Tu publicidad más inteligente, siempre.</h2>
@@ -275,8 +285,7 @@ function Generacion() {
   const feats = [['🖼️', 'Imágenes impactantes', 'Variaciones únicas generadas con IA.'], ['▶️', 'Videos cortos', 'Clips dinámicos listos para captar atención.'], ['🅃', 'Textos que convierten', 'Titulares y descripciones probadas y efectivas.'], ['⚡', 'CTAs optimizados', 'Llamados a la acción que generan más clics.']];
   const stats = [['10x', 'Más rápido', 'que hacerlo manualmente'], ['+35%', 'Mejor rendimiento', 'promedio'], ['50+', 'Variaciones', 'por cada idea'], ['IA', 'Optimiza y aprende', 'en cada iteración']];
   return (
-    <Section>
-      {eyebrowLabel(5, 'Generación de creativos')}
+    <Section n={5} label="Generación de creativos">
       <Fade><h2 style={{ ...H1, fontSize: 'clamp(26px,4vw,42px)', maxWidth: 640, marginBottom: 12 }}>Una idea. Decenas de anuncios listos para probar.</h2>
         <p style={{ color: P.muted, fontSize: 15.5, maxWidth: 560, marginBottom: 40 }}>Convertí una idea en múltiples variaciones de anuncios con IA. Imágenes, videos, textos y llamados a la acción optimizados para cada plataforma.</p></Fade>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'center' }} className="lp-2col">
@@ -307,8 +316,8 @@ function Generacion() {
 function Resultados() {
   const feats = [['📊', 'Métricas en tiempo real', 'Datos actualizados al instante para tomar mejores decisiones.'], ['🎯', 'Rendimiento por campaña', 'Compará campañas y encontrá las que más convierten.'], ['📈', 'Análisis profundo', 'Desglosá cada métrica y entendé qué está funcionando.'], ['🚀', 'Resultados que importan', 'Más ventas, mejor ROAS y crecimiento constante.']];
   return (
-    <Section id="resultados" style={{ background: P.bg2 }}>
-      {eyebrowLabel(6, 'Resultados')}
+    <Section id="resultados" n={6} label="Resultados">
+
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 34, alignItems: 'start' }} className="lp-2col">
         <div>
           <Fade><h2 style={{ ...H1, fontSize: 'clamp(26px,4vw,42px)', marginBottom: 14 }}>Cada campaña. Todos tus números.</h2>
@@ -340,8 +349,8 @@ function Integraciones() {
   const rows: [string, string, string, string][] = [['Meta', '$12.450', '$45.230', '3,6x'], ['Google Ads', '$6.780', '$18.900', '2,8x'], ['Instagram', '$4.230', '$12.450', '2,9x'], ['Facebook', '$5.120', '$14.230', '2,7x'], ['WhatsApp', '256', '87', '$9.870']];
   const feats = [['🔄', 'Sincronización automática', 'Tus datos siempre actualizados.'], ['🧠', 'IA que optimiza', 'Asignación inteligente de presupuesto.'], ['📊', 'Reportes unificados', 'Métricas claras en un solo panel.'], ['🛡️', 'Seguridad total', 'Tus datos protegidos y encriptados.']];
   return (
-    <Section id="integraciones">
-      {eyebrowLabel(7, 'Integraciones')}
+    <Section id="integraciones" n={7} label="Integraciones">
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 40, alignItems: 'center' }} className="lp-2col">
         <Fade>
           <h2 style={{ ...H1, fontSize: 'clamp(26px,4vw,42px)', marginBottom: 16 }}>Tu publicidad conectada en un solo lugar.</h2>
@@ -385,8 +394,8 @@ function NodeGraph() {
 function Beneficios() {
   const cards = [['⚡', 'Más velocidad', 'Pasá de horas a minutos. La IA hace el trabajo pesado.'], ['✨', 'Más creativos', 'Potenciá tus ideas y sorprendé a tus audiencias.'], ['🎯', 'Decisiones inteligentes', 'Tomá decisiones basadas en datos reales, no suposiciones.'], ['🔗', 'Todo conectado', 'Productos, anuncios, campañas y clientes en un solo lugar.'], ['📊', 'Mejores resultados', 'Más ventas, mejor ROAS y crecimiento constante.'], ['🛡️', 'Seguridad total', 'Tus datos protegidos con encriptación de nivel empresarial.']];
   return (
-    <Section id="beneficios" style={{ background: P.bg2 }}>
-      {eyebrowLabel(8, 'Beneficios')}
+    <Section id="beneficios" n={8} label="Beneficios">
+
       <Fade><h2 style={{ ...H1, fontSize: 'clamp(28px,4.4vw,48px)', marginBottom: 40 }}>Beneficios</h2></Fade>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16, marginBottom: 26 }}>
         {cards.map(([ic, t, d], i) => <Fade key={t} delay={i * 60}><div style={{ background: P.card, border: `1px solid ${P.border}`, borderRadius: 16, padding: 22, height: '100%' }}><div style={{ width: 42, height: 42, borderRadius: 12, background: `${P.violet}22`, display: 'grid', placeItems: 'center', fontSize: 20, marginBottom: 14 }}>{ic}</div><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, marginBottom: 6 }}>{t}</div><div style={{ fontSize: 13.5, color: P.muted, lineHeight: 1.55 }}>{d}</div></div></Fade>)}
@@ -408,8 +417,8 @@ function Testimonios() {
     { n: 'Sofía L.', r: 'Marca de ropa | Colombia', t: 'La inteligencia artificial optimiza todo automáticamente. Ahora nos podemos enfocar en lo importante: hacer crecer la marca.', tag: '+541% en interacciones', ago: 'Hace 1 mes', c: PLATFORMS['TikTok'] },
   ];
   return (
-    <Section>
-      {eyebrowLabel(9, 'Testimonios / Prueba social')}
+    <Section n={9} label="Testimonios / Prueba social">
+
       <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 30, alignItems: 'start' }} className="lp-2col">
         <div>
           <Fade><h2 style={{ ...H1, fontSize: 'clamp(26px,4vw,42px)', marginBottom: 14 }}>Negocios que ya están automatizando su publicidad.</h2>
@@ -441,8 +450,8 @@ function Testimonios() {
 function Gracias({ toRegister }: { toRegister: () => void }) {
   const foot = [['💜', 'Hecho con pasión', 'para emprendedores como vos.'], ['🎧', 'Soporte experto', 'siempre que lo necesites.'], ['🔒', 'Tus datos están seguros', 'con encriptación de nivel empresarial.'], ['✉️', '¿Dudas o consultas?', 'Escribinos a hola@conversia.com']];
   return (
-    <Section id="gracias" style={{ borderTop: `1px solid ${P.border}` }}>
-      {eyebrowLabel(11, 'Gracias')}
+    <Section id="gracias" n={11} label="Gracias">
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center' }} className="lp-2col">
         <Fade>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}><Logo size={44} /><div><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 26 }}>CONVERSIA</div><div style={{ fontSize: 12, color: P.violet2, letterSpacing: '.14em' }}>ADS SUITE</div></div></div>
