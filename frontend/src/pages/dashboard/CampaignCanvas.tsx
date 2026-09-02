@@ -34,6 +34,8 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
   const [pan, setPan] = useState({ x: 30, y: 20 });
   const [sel, setSel] = useState<GNode | null>(null);
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const nodeDrag = useRef<{ id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
 
   const doneCount = plan.scenes.filter(s => runs[s.key]?.status === 'done').length;
   const runningCount = plan.scenes.filter(s => runs[s.key]?.status === 'running').length;
@@ -50,6 +52,8 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
   const finalDone = doneCount === plan.scenes.length && plan.scenes.length > 0;
   const cy = 40 + Math.max(0, (plan.scenes.length - 1) * 150) / 2;
   nodes.push({ id: 'final', x: 700, y: cy, group: 'produccion', emoji: '🎞️', title: 'Video final', sub: '9:16 · subtítulos', badges: ['Ensamblado'], status: finalVideoUrl ? 'done' : assembling ? 'running' : finalDone ? 'idle' : 'idle', media: finalVideoUrl });
+
+  nodes.forEach(n => { const p = positions[n.id]; if (p) { n.x = p.x; n.y = p.y; } });
 
   const byId = (id: string) => nodes.find(n => n.id === id)!;
   const edges: [string, string][] = [];
@@ -68,8 +72,21 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
     return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
   };
   const onDown = (e: React.MouseEvent) => { drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y }; };
-  const onMove = (e: React.MouseEvent) => { if (drag.current) setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) }); };
-  const onUp = () => { drag.current = null; };
+  const onNodeDown = (e: React.MouseEvent, n: GNode) => { e.stopPropagation(); nodeDrag.current = { id: n.id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false }; };
+  const onMove = (e: React.MouseEvent) => {
+    const nd = nodeDrag.current;
+    if (nd) {
+      if (Math.abs(e.clientX - nd.sx) > 3 || Math.abs(e.clientY - nd.sy) > 3) nd.moved = true;
+      setPositions(p => ({ ...p, [nd.id]: { x: nd.ox + (e.clientX - nd.sx) / zoom, y: nd.oy + (e.clientY - nd.sy) / zoom } }));
+      return;
+    }
+    if (drag.current) setPan({ x: drag.current.px + (e.clientX - drag.current.x), y: drag.current.py + (e.clientY - drag.current.y) });
+  };
+  const onUp = () => {
+    const nd = nodeDrag.current;
+    if (nd) { if (!nd.moved) setSel(nodes.find(n => n.id === nd.id) ?? null); nodeDrag.current = null; return; }
+    drag.current = null;
+  };
 
   const worldW = 940, worldH = Math.max(560, 40 + plan.scenes.length * 150 + 140);
 
@@ -99,11 +116,11 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
             </>
           )}
         </div>
-        <style>{`@keyframes cvspin{to{transform:rotate(360deg)}}`}</style>
+        <style>{`@keyframes cvspin{to{transform:rotate(360deg)}}@keyframes cvbar{0%{left:-42%}100%{left:100%}}`}</style>
       </div>
 
       {/* Lienzo */}
-      <div onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ position: 'absolute', inset: 0, cursor: drag.current ? 'grabbing' : 'grab' }}>
+      <div onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ position: 'absolute', inset: 0, cursor: nodeDrag.current ? 'grabbing' : drag.current ? 'grabbing' : 'grab' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transformOrigin: '0 0' }}>
           {/* Grupos */}
           {groupRects.map(g => (
@@ -115,7 +132,7 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
           <svg width={worldW} height={worldH} style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}>
             {edges.map(([a, b], i) => <path key={i} d={path(byId(a), byId(b))} fill="none" stroke={byId(b).status === 'done' ? C.green : byId(b).status === 'running' ? C.amber : '#3a3a5e'} strokeWidth={2} opacity={0.85} />)}
           </svg>
-          {nodes.map(n => <Node key={n.id} n={n} onClick={() => setSel(n)} selected={sel?.id === n.id} />)}
+          {nodes.map(n => <Node key={n.id} n={n} onDown={onNodeDown} selected={sel?.id === n.id} />)}
         </div>
       </div>
 
@@ -160,12 +177,12 @@ export default function CampaignCanvas({ plan, runs, running, onRunAll, totalCos
   );
 }
 
-function Node({ n, onClick, selected }: { n: GNode; onClick: () => void; selected: boolean }) {
+function Node({ n, onDown, selected }: { n: GNode; onDown: (e: React.MouseEvent, n: GNode) => void; selected: boolean }) {
   const border = selected ? C.accent : n.status === 'running' ? C.amber : n.status === 'done' ? C.green : '#2a2a44';
   const STt: Record<SceneStatus, string> = { idle: 'Planificado', running: '● Generando', done: '✓ Listo', error: '✕ Error' };
   const STc: Record<SceneStatus, string> = { idle: C.textMuted, running: C.amber, done: C.green, error: C.red };
   return (
-    <div onMouseDown={e => e.stopPropagation()} onClick={onClick} style={{ position: 'absolute', left: n.x, top: n.y, width: W, height: H, background: '#12122a', border: `2px solid ${border}`, borderRadius: 14, overflow: 'hidden', cursor: 'pointer', boxShadow: selected ? `0 0 0 3px ${C.accentDim}` : '0 8px 20px -12px #000', display: 'flex', flexDirection: 'column' }}>
+    <div onMouseDown={e => onDown(e, n)} style={{ position: 'absolute', left: n.x, top: n.y, width: W, height: H, background: '#12122a', border: `2px solid ${border}`, borderRadius: 14, overflow: 'hidden', cursor: 'grab', boxShadow: selected ? `0 0 0 3px ${C.accentDim}` : '0 8px 20px -12px #000', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 9px', borderBottom: `1px solid #ffffff10` }}>
         <span style={{ fontSize: 14 }}>{n.emoji}</span>
         <span style={{ fontWeight: 700, fontSize: 11.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{n.title}</span>
@@ -178,6 +195,11 @@ function Node({ n, onClick, selected }: { n: GNode; onClick: () => void; selecte
         <div style={{ position: 'absolute', bottom: 4, left: 4, right: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {n.badges.slice(0, 2).map(b => <span key={b} style={{ fontSize: 8.5, fontWeight: 600, color: '#cfe0ff', background: '#000a', borderRadius: 5, padding: '1px 5px' }}>{b}</span>)}
         </div>
+        {n.status === 'running' && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: '#0007', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, bottom: 0, width: '42%', background: C.amber, borderRadius: 3, animation: 'cvbar 1.1s ease-in-out infinite' }} />
+          </div>
+        )}
       </div>
     </div>
   );
