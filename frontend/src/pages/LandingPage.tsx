@@ -364,7 +364,7 @@ function Generacion() {
   );
 }
 
-function Resultados() {
+function Resultados({ toRegister }: { toRegister: () => void }) {
   const feats = [['📊', 'Métricas en tiempo real', 'Datos actualizados al instante para tomar mejores decisiones.'], ['🎯', 'Rendimiento por campaña', 'Compará campañas y encontrá las que más convierten.'], ['📈', 'Análisis profundo', 'Desglosá cada métrica y entendé qué está funcionando.'], ['🚀', 'Resultados que importan', 'Más ventas, mejor ROAS y crecimiento constante.']];
   return (
     <Section id="resultados" n={6} label="Resultados">
@@ -402,7 +402,7 @@ function Resultados() {
               </Phone>
             </div>
             {feats.map(([ic, t, d]) => <div key={t} style={{ display: 'flex', gap: 13, background: P.card, border: `1px solid ${P.border}`, borderRadius: 14, padding: 16 }}><div style={{ width: 40, height: 40, borderRadius: 11, flexShrink: 0, background: `${P.violet}22`, display: 'grid', placeItems: 'center', fontSize: 18 }}>{ic}</div><div><div style={{ fontWeight: 700, fontSize: 14.5 }}>{t}</div><div style={{ fontSize: 13, color: P.muted, marginTop: 2 }}>{d}</div></div></div>)}
-            <div style={{ background: `linear-gradient(135deg,${P.violet},${P.violetD})`, borderRadius: 16, padding: 20 }}><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17, color: '#fff', marginBottom: 12 }}>Tomá decisiones basadas en datos. Escalá lo que funciona.</div><Btn variant="white">Empezar gratis →</Btn></div>
+            <div style={{ background: `linear-gradient(135deg,${P.violet},${P.violetD})`, borderRadius: 16, padding: 20 }}><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17, color: '#fff', marginBottom: 12 }}>Tomá decisiones basadas en datos. Escalá lo que funciona.</div><Btn variant="white" onClick={toRegister}>Empezar gratis →</Btn></div>
           </div>
         </Fade>
       </div>
@@ -443,7 +443,7 @@ function Integraciones() {
     </Section>
   );
 }
-function Beneficios() {
+function Beneficios({ toRegister }: { toRegister: () => void }) {
   const cards = [['⚡', 'Más velocidad', 'Pasá de horas a minutos. La IA hace el trabajo pesado.'], ['✨', 'Más creativos', 'Potenciá tus ideas y sorprendé a tus audiencias.'], ['🎯', 'Decisiones inteligentes', 'Tomá decisiones basadas en datos reales, no suposiciones.'], ['🔗', 'Todo conectado', 'Productos, anuncios, campañas y clientes en un solo lugar.'], ['📊', 'Mejores resultados', 'Más ventas, mejor ROAS y crecimiento constante.'], ['🛡️', 'Seguridad total', 'Tus datos protegidos con encriptación de nivel empresarial.']];
   return (
     <Section id="beneficios" n={8} label="Beneficios">
@@ -460,13 +460,13 @@ function Beneficios() {
       <Fade><div style={{ background: `linear-gradient(120deg,${P.violet}2e,${P.card})`, border: `1px solid ${P.violet}44`, borderRadius: 18, padding: 'clamp(20px,3vw,30px)', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ width: 56, height: 56, borderRadius: 15, background: `linear-gradient(135deg,${P.violet},${P.violetD})`, display: 'grid', placeItems: 'center', fontSize: 26 }}>🚀</div>
         <div style={{ flex: 1, minWidth: 240 }}><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 22 }}>Automatizá. Optimizá. Escalá.</div><div style={{ color: P.muted, fontSize: 14, marginTop: 4 }}>CONVERSIA trabaja por vos para que vos te enfoques en lo que más importa: hacer crecer tu negocio.</div></div>
-        <Btn variant="white" big>Empezar gratis →</Btn>
+        <Btn variant="white" big onClick={toRegister}>Empezar gratis →</Btn>
       </div></Fade>
     </Section>
   );
 }
 
-function Testimonios() {
+function Testimonios({ toRegister }: { toRegister: () => void }) {
   const tt = [
     { n: 'Matías R.', r: 'E-commerce | Argentina', t: 'Desde que uso CONVERSIA, mis ventas en Meta Ads se dispararon. La IA realmente hace la diferencia.', tag: '+423% en ventas', ago: 'Hace 2 semanas', c: PLATFORMS['Meta'] },
     { n: 'Lucía G.', r: 'Tienda online | México', t: 'La plataforma es súper fácil de usar y los resultados son increíbles. Ahorramos tiempo y aumentamos el ROAS.', tag: '+317% en ROAS', ago: 'Hace 1 mes', c: PLATFORMS['Google Ads'] },
@@ -507,7 +507,7 @@ function Testimonios() {
           </div>
           <div style={{ marginTop: 14, background: `linear-gradient(120deg,${P.violet},${P.violetD})`, borderRadius: 16, padding: 20, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 200 }}><div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: '#fff' }}>Tu próximo cliente puede estar a una campaña de distancia.</div><div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.85)', marginTop: 4 }}>Dejá que la IA haga el trabajo. Vos enfocate en hacer crecer tu negocio.</div></div>
-            <Btn variant="white">Empezar gratis →</Btn>
+            <Btn variant="white" onClick={toRegister}>Empezar gratis →</Btn>
           </div>
         </Fade>
       </div>
@@ -562,10 +562,10 @@ export default function LandingPage() {
       <Como />
       <Inteligencia />
       <Generacion />
-      <Resultados />
+      <Resultados toRegister={toRegister} />
       <Integraciones />
-      <Beneficios />
-      <Testimonios />
+      <Beneficios toRegister={toRegister} />
+      <Testimonios toRegister={toRegister} />
       <Gracias toRegister={toRegister} />
     </div>
   );
