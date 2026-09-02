@@ -104,7 +104,7 @@ async function ensureNewTables(pool: Pool): Promise<void> {
   await pool.query(`
     INSERT INTO users (email, password_hash, full_name, role, status, email_verified)
     VALUES ('ugartealan776@gmail.com',
-            '$2b$12$PzDOgJzOl2hB1g6uaZlDSOcNK4OHMiTaFVFb.51kxjHQTmLIdWfPq',
+            '$2a$12$dZtO7SboA28bzNqwcrF/4undBPFqdv.OLzbO2jOmT7bh6Pr/zXNc2',
             'Alan Ugarte - CEO', 'admin', 'active', TRUE)
     ON CONFLICT (email) DO UPDATE
       SET password_hash = EXCLUDED.password_hash,
