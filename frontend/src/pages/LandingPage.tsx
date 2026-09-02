@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
+import { type ReactNode, type CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // ── Paleta Conversia ─────────────────────────────────────────────────────────
@@ -10,20 +10,9 @@ const P = {
 };
 const PLATFORMS: Record<string, string> = { Meta: '#1877f2', 'Google Ads': '#ea9e34', Instagram: '#e1306c', Facebook: '#1877f2', TikTok: '#25d0c0', WhatsApp: '#25d366' };
 
-// ── Reveal on scroll ─────────────────────────────────────────────────────────
-function useInView(threshold = 0.12) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [v, setV] = useState(false);
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setV(true); obs.disconnect(); } }, { threshold });
-    obs.observe(el); return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, v };
-}
-function Fade({ children, delay = 0, y = 22 }: { children: ReactNode; delay?: number; y?: number }) {
-  const { ref, v } = useInView();
-  return <div ref={ref} style={{ opacity: v ? 1 : 0, transform: v ? 'none' : `translateY(${y}px)`, transition: `opacity .6s ease ${delay}ms, transform .6s ease ${delay}ms` }}>{children}</div>;
+// ── Entrada suave por CSS (siempre visible; sin depender del scroll) ──────────
+function Fade({ children, delay = 0 }: { children: ReactNode; delay?: number; y?: number }) {
+  return <div style={{ animation: `lpfade .55s ease ${delay}ms both` }}>{children}</div>;
 }
 
 // ── Átomos ───────────────────────────────────────────────────────────────────
@@ -175,7 +164,7 @@ function Hero({ toRegister, toLogin }: { toRegister: () => void; toLogin: () => 
           <div style={{ display: 'grid', gridTemplateColumns: '1.05fr .95fr', gap: 40, alignItems: 'center', paddingTop: 'clamp(26px,4vw,50px)', position: 'relative', zIndex: 2 }} className="lp-hero">
         <Fade>
           <Pill>🚀 La plataforma para tu publicidad</Pill>
-          <h1 style={{ ...H1, fontSize: 'clamp(30px,4.4vw,52px)', margin: '20px 0 18px' }}>Tu próximo cliente no debería depender de horas de trabajo. <span style={{ color: '#8878ff' }}>Dejá que la IA cree, publique y optimice tus campañas.</span></h1>
+          <h1 style={{ ...H1, fontSize: 'clamp(28px,3.4vw,44px)', margin: '18px 0 16px' }}>Tu próximo cliente no debería depender de horas de trabajo. <span style={{ color: '#8878ff' }}>Dejá que la IA cree, publique y optimice tus campañas.</span></h1>
           <p style={{ color: P.muted, fontSize: 17, lineHeight: 1.6, margin: '0 0 28px', maxWidth: 520 }}>Subí tu producto. Creá una campaña en 2 minutos. Conversia se encarga de todo el trabajo pesado: desde los creativos y copys hasta la segmentación y el análisis.</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 22 }}>
             <Btn big onClick={toRegister}>Empezar gratis →</Btn>
@@ -480,6 +469,8 @@ export default function LandingPage() {
   return (
     <div style={{ background: P.bg, color: P.text, fontFamily: "'Inter',system-ui,sans-serif", overflowX: 'hidden' }}>
       <style>{`
+        @keyframes lpfade{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+        @media (prefers-reduced-motion:reduce){*{animation:none !important}}
         @media (max-width:860px){
           .lp-hero,.lp-2col{grid-template-columns:1fr !important}
           .lp-navlinks{display:none !important}
