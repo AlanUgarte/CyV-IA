@@ -125,6 +125,22 @@ export default function AdminCosts() {
         })}
       </div>
 
+      {/* Precios de proveedor cargados */}
+      <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 12px' }}>Precios de proveedor cargados (oficiales)</h3>
+      <div style={{ ...card, marginBottom: 26 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
+          <Mini label="Imagen estándar" value={money(+(pc.image ?? 0))} />
+          <Mini label="Imagen premium" value={money(+(pc.imagePremium ?? 0))} />
+          <Mini label="Video 10s" value={money(+(pc.video10 ?? 0))} color={C.amber} />
+          <Mini label="Copy (gpt-4o-mini)" value={money(+(pc.copy ?? 0))} />
+          <Mini label="Voz TTS (~30s)" value={money(+(pc.tts ?? 0))} />
+        </div>
+        <p style={{ fontSize: 12, color: C.textMuted, marginTop: 12, lineHeight: 1.6 }}>
+          Precios de lista de los proveedores (OpenAI · fal.ai/Seedance), configurables al valor exacto de tu factura por variables de entorno.
+          <b style={{ color: C.text }}> Cuando cargues las keys, el gasto real = estos precios × el uso real</b> (segundos de video, cantidad de imágenes/copys/voces) y se registra por cada generación en el gasto de IA.
+        </p>
+      </div>
+
       {/* Calculadora de precio objetivo */}
       <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 12px' }}>Calculadora de precio de venta</h3>
       <div style={{ ...card, marginBottom: 26 }}>

@@ -108,10 +108,12 @@ export class CreativeController {
     return { ...(result as any), credits, creditsUsed };
   }
 
-  // PASO 6 — copy (gratis)
+  // PASO 6 — copy (gratis para el usuario; registramos su costo real de IA)
   @Post('copy') @HttpCode(HttpStatus.OK)
-  async copy(@Body() body: { product: ProductInfo; objective: string; style: string }) {
-    return { variants: await this.svc.generateCopy(body) };
+  async copy(@Body() body: { product: ProductInfo; objective: string; style: string }, @Request() req: any) {
+    const variants = await this.svc.generateCopy(body);
+    await this.cost.log({ userId: req.user.id, provider: PROVIDERS.copy, model: PROVIDERS.openaiChatModel, operation: 'copy', estimatedProviderCostUsd: estimateProviderCost('copy'), creditsConsumed: 0, status: 'completed' });
+    return { variants };
   }
 
   // ── UGC (persona IA) ─────────────────────────────────────────────────────────
@@ -148,9 +150,13 @@ export class CreativeController {
     return { ...(result as any), credits, creditsUsed };
   }
 
-  // Texto a voz (TTS real). Gratis.
+  // Texto a voz (TTS real). Gratis para el usuario; registramos su costo real de IA.
   @Post('tts') @HttpCode(HttpStatus.OK)
-  async tts(@Body() body: { text: string; voice?: string }) { return this.svc.generateVoice(body.text, body.voice); }
+  async tts(@Body() body: { text: string; voice?: string }, @Request() req: any) {
+    const r = await this.svc.generateVoice(body.text, body.voice);
+    await this.cost.log({ userId: req.user.id, provider: 'openai', model: process.env.OPENAI_TTS_MODEL ?? 'gpt-4o-mini-tts', operation: 'tts', estimatedProviderCostUsd: estimateProviderCost('tts'), creditsConsumed: 0, status: 'completed' });
+    return r;
+  }
 
   // Ensamblar el video final de la campaña (une las escenas). Gratis (solo cómputo).
   @Post('ugc-campaign/assemble') @HttpCode(HttpStatus.OK)

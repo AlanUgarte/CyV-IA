@@ -91,6 +91,6 @@ export class CreditsController {
   async adminMetrics(@Request() req: any) {
     if (req.user.role !== 'admin') throw new ForbiddenException();
     const m = await this.cost.adminMetrics();
-    return { ...m, providerCostUsd: { image: estimateProviderCost('image_standard'), imagePremium: estimateProviderCost('image_premium'), video10: estimateProviderCost('video_10', 10) } };
+    return { ...m, providerCostUsd: { image: estimateProviderCost('image_standard'), imagePremium: estimateProviderCost('image_premium'), video10: estimateProviderCost('video_10', 10), copy: estimateProviderCost('copy'), tts: estimateProviderCost('tts') } };
   }
 }
