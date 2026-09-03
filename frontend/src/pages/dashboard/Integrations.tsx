@@ -70,11 +70,11 @@ export default function Integrations() {
     try {
       await integrationsApi.save(id, f);
       setConnected(p => ({ ...p, [id]: true }));
-      setSuccess(p => ({ ...p, [id]: '✓ Integración guardada correctamente' }));
-    } catch {
-      // Fallback: save locally so UX still works even if API is unavailable
-      setConnected(p => ({ ...p, [id]: true }));
-      setSuccess(p => ({ ...p, [id]: '✓ Configuración guardada' }));
+      setSuccess(p => ({ ...p, [id]: '✓ Conectado y validado correctamente' }));
+    } catch (e: any) {
+      // Mostrar el error real (token inválido, cuenta inaccesible, etc.) — no fingir éxito
+      const msg = e?.response?.data?.message || e?.response?.data?.error || 'No se pudo conectar. Verificá las credenciales.';
+      setErrors(p => ({ ...p, [id]: Array.isArray(msg) ? msg.join(', ') : String(msg) }));
     }
     setLoading(p => ({ ...p, [id]: false }));
   };
