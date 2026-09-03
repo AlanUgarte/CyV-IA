@@ -302,3 +302,22 @@ tr:last-child td{border-bottom:none}
   .hero-title{font-size:22px}
   .auth-card{padding:20px 14px}
 }
+
+/* ── RESPONSIVE: PANEL ADMIN + seguridad de layout ────────────────────────── */
+@media(max-width:1024px){
+  .aside{width:190px;min-width:190px}
+}
+@media(max-width:768px){
+  .shell{flex-direction:column;height:auto;min-height:100vh;overflow:visible}
+  .aside{width:100%;min-width:0;height:auto;flex-direction:row;align-items:center;overflow-x:auto;border-right:none;border-bottom:1px solid #1c1c2e;padding:8px 10px;gap:8px}
+  .aside .nav-area{flex-direction:row !important;overflow-x:auto;gap:6px;padding:0;flex:1}
+  .aside .nav-sec{display:none !important}
+  .aside .nav-item{white-space:nowrap;flex-shrink:0;padding:8px 12px}
+  .aside .logo-area{flex-shrink:0;border:none;padding:0 4px 0 0}
+  .aside .admin-profile{display:none !important}
+  .main-col{overflow:visible}
+  .content{padding:14px 14px 40px}
+  .topbar{padding:10px 14px}
+}
+/* nada empuja el ancho de la página en ninguna medida */
+html,body{max-width:100%;overflow-x:hidden}

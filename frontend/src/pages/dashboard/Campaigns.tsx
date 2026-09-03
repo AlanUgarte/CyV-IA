@@ -12,14 +12,6 @@ import {
   formatBudget, formatSpent, formatCpc, normalizeCtr, normalizeRoas,
 } from '../../api/campaigns';
 
-const MOCK: CampaignRow[] = [
-  { id: '1', name: 'Zapatillas Nike Air - Reels',  status: 'active',     daily_budget_cents: 2500, total_spent_cents: 31200, ctr: '4.2', cpc_cents: 38,  leads: 82,  roas: '4.1', impressions: 18000, clicks: 756,  created_at: '' },
-  { id: '2', name: 'Bolsos importados - Stories',  status: 'active',     daily_budget_cents: 1500, total_spent_cents: 19800, ctr: '3.8', cpc_cents: 52,  leads: 38,  roas: '3.2', impressions: 9200,  clicks: 350,  created_at: '' },
-  { id: '3', name: 'Ropa de invierno - Feed',      status: 'paused',     daily_budget_cents: 1000, total_spent_cents: 8700,  ctr: '1.9', cpc_cents: 110, leads: 9,   roas: '1.2', impressions: 4500,  clicks: 86,   created_at: '' },
-  { id: '4', name: 'Tecnología gaming - Carrusel', status: 'optimizing', daily_budget_cents: 4000, total_spent_cents: 52000, ctr: '5.1', cpc_cents: 29,  leads: 179, roas: '5.8', impressions: 32000, clicks: 1632, created_at: '' },
-  { id: '5', name: 'Indumentaria deportiva',       status: 'active',     daily_budget_cents: 2000, total_spent_cents: 24100, ctr: '3.4', cpc_cents: 61,  leads: 55,  roas: '2.9', impressions: 12000, clicks: 408,  created_at: '' },
-];
-
 const STATUS_COLORS: Record<string, string> = {
   active:     '#00d68f',
   optimizing: '#ffb347',
@@ -28,7 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Campaigns() {
   const navigate  = useNavigate();
-  const [campaigns, setCampaigns] = useState<CampaignRow[]>(MOCK);
+  const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [actionId,  setActionId]  = useState<string | null>(null);
   const [search,    setSearch]    = useState('');
@@ -44,8 +36,8 @@ export default function Campaigns() {
     try {
       const res  = await campaignsApi.getAll({ limit: 50 });
       const list = (res.data as any)?.data?.campaigns ?? (res.data as any)?.campaigns ?? [];
-      if (Array.isArray(list) && list.length > 0) setCampaigns(list);
-    } catch { /* keep mock */ }
+      setCampaigns(Array.isArray(list) ? list : []);
+    } catch { setCampaigns([]); }
     setLoading(false);
   }, []);
 

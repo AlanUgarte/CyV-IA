@@ -115,29 +115,10 @@ function HomeGallery({ navigate }: { navigate: (p: string) => void }) {
 
 /* ── Mock data ──────────────────────────────────────────────────────────────── */
 
-const MOCK_CAMPAIGNS: CampaignRow[] = [
-  { id: '1', name: 'Zapatillas Nike Air - Reels',    status: 'active',     daily_budget_cents: 2500, total_spent_cents: 31200, ctr: '4.2', cpc_cents: 38,  leads: 82,  roas: '4.1', impressions: 18000, clicks: 756,  created_at: '' },
-  { id: '2', name: 'Bolsos importados - Stories',    status: 'active',     daily_budget_cents: 1500, total_spent_cents: 19800, ctr: '3.8', cpc_cents: 52,  leads: 38,  roas: '3.2', impressions: 9200,  clicks: 350,  created_at: '' },
-  { id: '3', name: 'Ropa de invierno - Feed',        status: 'paused',     daily_budget_cents: 1000, total_spent_cents: 8700,  ctr: '1.9', cpc_cents: 110, leads: 9,   roas: '1.2', impressions: 4500,  clicks: 86,   created_at: '' },
-  { id: '4', name: 'Tecnología gaming - Carrusel',   status: 'optimizing', daily_budget_cents: 4000, total_spent_cents: 52000, ctr: '5.1', cpc_cents: 29,  leads: 179, roas: '5.8', impressions: 32000, clicks: 1632, created_at: '' },
-];
-
-const MOCK_INSIGHTS = [
-  { type: 'scale',    title: 'Gaming Carrusel: ROAS 5.8x',     detail: 'Subir presupuesto a $60/día', action: 'Escalar campaña',     priority: 'high' },
-  { type: 'pause',    title: 'Ropa invierno: CTR 1.9%',        detail: 'ROAS 1.2x → Pausar y revisar hook', action: 'Pausar',          priority: 'high' },
-  { type: 'optimize', title: 'Audiencia mujer 18-34',           detail: 'Convierte 2.3x más → Aumentar bid', action: 'Optimizar',       priority: 'medium' },
-  { type: 'info',     title: "Hook 'Últimas unidades'",         detail: 'CTR +40% vs otras campañas',        action: 'Aplicar a todas', priority: 'medium' },
-];
-
-const PERF_DATA = [
-  { day: 'Lun', roas: 3.2, leads: 18, ctr: 2.8 },
-  { day: 'Mar', roas: 3.8, leads: 24, ctr: 3.1 },
-  { day: 'Mié', roas: 4.1, leads: 31, ctr: 3.5 },
-  { day: 'Jue', roas: 3.7, leads: 22, ctr: 3.0 },
-  { day: 'Vie', roas: 4.6, leads: 38, ctr: 4.2 },
-  { day: 'Sáb', roas: 5.1, leads: 45, ctr: 5.1 },
-  { day: 'Dom', roas: 4.8, leads: 40, ctr: 4.7 },
-];
+// Datos reales — arrancan vacíos hasta que haya campañas/generaciones.
+const MOCK_CAMPAIGNS: CampaignRow[] = [];
+const MOCK_INSIGHTS: any[] = [];
+const PERF_DATA: { day: string; roas: number; leads: number; ctr: number }[] = [];
 
 const SPARKLINE_DATA = {
   roas:    [3, 5, 4, 7, 6, 8, 9, 11],

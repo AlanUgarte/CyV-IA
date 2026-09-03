@@ -47,9 +47,9 @@ export default function AdminCosts() {
   // Costo vs precio por operación
   const pc = m.providerCostUsd ?? {};
   const ops = useMemo(() => ([
-    { label: 'Imagen · estándar', cost: +(pc.image ?? 0), credits: costs.image_standard ?? costs.image ?? 0 },
-    { label: 'Imagen · premium', cost: +(pc.imagePremium ?? 0), credits: costs.image_premium ?? 0 },
-    { label: 'Video · 10s', cost: +(pc.video10 ?? 0), credits: costs.video_10 ?? costs.ugc_video_10 ?? 0 },
+    { label: 'Imagen estándar · gpt-image-2', cost: +(pc.image ?? 0), credits: costs.image_standard ?? costs.image ?? 0 },
+    { label: 'Imagen premium · gpt-image-2', cost: +(pc.imagePremium ?? 0), credits: costs.image_premium ?? 0 },
+    { label: 'Video 10s · Seedance 1.5 Pro', cost: +(pc.video10 ?? 0), credits: costs.video_10 ?? costs.ugc_video_10 ?? 0 },
   ].filter(o => o.credits > 0 || o.cost > 0)), [pc, costs]);
 
   const money = (n: number) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
@@ -129,11 +129,11 @@ export default function AdminCosts() {
       <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: 17, margin: '0 0 12px' }}>Precios de proveedor cargados (oficiales)</h3>
       <div style={{ ...card, marginBottom: 26 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
-          <Mini label="Imagen estándar" value={money(+(pc.image ?? 0))} />
-          <Mini label="Imagen premium" value={money(+(pc.imagePremium ?? 0))} />
-          <Mini label="Video 10s" value={money(+(pc.video10 ?? 0))} color={C.amber} />
-          <Mini label="Copy (gpt-4o-mini)" value={money(+(pc.copy ?? 0))} />
-          <Mini label="Voz TTS (~30s)" value={money(+(pc.tts ?? 0))} />
+          <Mini label="Imagen estándar" value={money(+(pc.image ?? 0))} sub="OpenAI · gpt-image-2" />
+          <Mini label="Imagen premium" value={money(+(pc.imagePremium ?? 0))} sub="OpenAI · gpt-image-2 (alta)" />
+          <Mini label="Video 10s" value={money(+(pc.video10 ?? 0))} color={C.amber} sub="Seedance 1.5 Pro · fal.ai" />
+          <Mini label="Copy" value={money(+(pc.copy ?? 0))} sub="OpenAI · gpt-4o-mini" />
+          <Mini label="Voz TTS (~30s)" value={money(+(pc.tts ?? 0))} sub="OpenAI · gpt-4o-mini-tts" />
         </div>
         <p style={{ fontSize: 12, color: C.textMuted, marginTop: 12, lineHeight: 1.6 }}>
           Precios de lista de los proveedores (OpenAI · fal.ai/Seedance), configurables al valor exacto de tu factura por variables de entorno.
@@ -253,11 +253,12 @@ function Stat({ label, value, color = C.text, sub }: { label: string; value: any
     </div>
   );
 }
-function Mini({ label, value, color = C.text }: { label: string; value: string; color?: string }) {
+function Mini({ label, value, color = C.text, sub }: { label: string; value: string; color?: string; sub?: string }) {
   return (
     <div style={{ background: C.surface2, borderRadius: 10, padding: '12px 14px' }}>
       <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
       <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 20, color }}>{value}</div>
+      {sub && <div style={{ fontSize: 10.5, color: C.textDim, marginTop: 3, fontFamily: "'DM Mono',monospace" }}>{sub}</div>}
     </div>
   );
 }

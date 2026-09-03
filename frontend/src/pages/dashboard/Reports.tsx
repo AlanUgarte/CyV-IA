@@ -15,23 +15,9 @@ import api from '../../api/client';
 
 /* ── Static data ──────────────────────────────────────────────────────────── */
 
-const MOCK_CAMPAIGNS = [
-  { id: 1, name: 'Zapatillas Nike Air - Reels',  roas: '4.1x', leads: 82,  ctr: '4.2%', spent: '$312' },
-  { id: 2, name: 'Bolsos importados - Stories',  roas: '3.2x', leads: 38,  ctr: '3.8%', spent: '$198' },
-  { id: 3, name: 'Ropa de invierno - Feed',      roas: '1.2x', leads: 9,   ctr: '1.9%', spent: '$87'  },
-  { id: 4, name: 'Tecnología gaming - Carrusel', roas: '5.8x', leads: 179, ctr: '5.1%', spent: '$520' },
-  { id: 5, name: 'Indumentaria deportiva',       roas: '2.9x', leads: 55,  ctr: '3.4%', spent: '$241' },
-];
-
-const WEEKLY_DATA = [
-  { day: 'Lun', roas: 3.2, leads: 18, cpm: 4.8 },
-  { day: 'Mar', roas: 3.8, leads: 24, cpm: 4.5 },
-  { day: 'Mié', roas: 4.1, leads: 31, cpm: 4.2 },
-  { day: 'Jue', roas: 3.7, leads: 22, cpm: 4.0 },
-  { day: 'Vie', roas: 4.6, leads: 38, cpm: 4.1 },
-  { day: 'Sáb', roas: 5.1, leads: 45, cpm: 3.9 },
-  { day: 'Dom', roas: 4.8, leads: 40, cpm: 4.2 },
-];
+// Datos reales — vacíos hasta que haya campañas/generaciones.
+const MOCK_CAMPAIGNS: { id: number; name: string; roas: string; leads: number; ctr: string; spent: string }[] = [];
+const WEEKLY_DATA: { day: string; roas: number; leads: number; cpm: number }[] = [];
 
 const INSIGHT_TYPE_ICON: Record<string, string>             = { scale: '🚀', pause: '⏸️', optimize: '🎯', info: '💡', warning: '⚠️' };
 const INSIGHT_TYPE_TAG:  Record<string, 'tg'|'ta'|'tb'|'tr'> = { scale: 'tg', warning: 'ta', info: 'tb', optimize: 'tb', pause: 'tr' };
