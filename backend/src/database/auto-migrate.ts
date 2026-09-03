@@ -103,14 +103,16 @@ async function ensureNewTables(pool: Pool): Promise<void> {
   // CEO / admin owner — idempotent, kept in sync on every boot
   await pool.query(`
     INSERT INTO users (email, password_hash, full_name, role, status, email_verified)
-    VALUES ('ugartealan776@gmail.com',
+    VALUES ('conversia.meta@gmail.com',
             '$2a$12$dZtO7SboA28bzNqwcrF/4undBPFqdv.OLzbO2jOmT7bh6Pr/zXNc2',
-            'Alan Ugarte - CEO', 'admin', 'active', TRUE)
+            'Conversia - CEO', 'admin', 'active', TRUE)
     ON CONFLICT (email) DO UPDATE
       SET password_hash = EXCLUDED.password_hash,
           full_name = EXCLUDED.full_name,
           role = 'admin', status = 'active', email_verified = TRUE
   `);
+  // El administrador anterior deja de tener permisos de CEO
+  await pool.query(`UPDATE users SET role = 'user' WHERE email = 'ugartealan776@gmail.com'`).catch(() => { /* ignore */ });
 }
 
 // Limpieza de datos de prueba/ficticios. Se activa SOLO con la env RESET_DEMO.
