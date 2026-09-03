@@ -14,6 +14,8 @@ export const DATABASE_POOL = 'DATABASE_POOL';
         // Railway injects DATABASE_URL; fallback to individual vars for local dev
         const databaseUrl = process.env.DATABASE_URL;
         const isProd = config.get('nodeEnv') === 'production';
+        // La red interna de Railway (postgres.railway.internal) no soporta SSL: solo usar SSL en hosts públicos.
+        const useSsl = isProd && !/railway\.internal|localhost|127\.0\.0\.1/.test(databaseUrl || '');
 
         const pool = databaseUrl
           ? new Pool({
@@ -21,7 +23,7 @@ export const DATABASE_POOL = 'DATABASE_POOL';
               max: 20,
               idleTimeoutMillis: 30_000,
               connectionTimeoutMillis: 5_000,
-              ssl: isProd ? { rejectUnauthorized: false } : false,
+              ssl: useSsl ? { rejectUnauthorized: false } : false,
             })
           : new Pool({
               host: config.get('database.host'),

@@ -138,9 +138,11 @@ export async function autoMigrate(): Promise<void> {
     return;
   }
 
+  // La red interna de Railway no soporta SSL: solo usar SSL en hosts públicos.
+  const useSsl = process.env.NODE_ENV === 'production' && !/railway\.internal|localhost|127\.0\.0\.1/.test(dbUrl);
   const pool = new Pool({
     connectionString: dbUrl,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: useSsl ? { rejectUnauthorized: false } : false,
   });
 
   try {
