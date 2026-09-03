@@ -113,6 +113,24 @@ async function ensureNewTables(pool: Pool): Promise<void> {
   `);
 }
 
+// Limpieza de datos de prueba/ficticios. Se activa SOLO con la env RESET_DEMO.
+// Conserva la cuenta CEO y el esquema; borra el resto de datos y usuarios de prueba.
+async function cleanDemoData(pool: Pool): Promise<void> {
+  if (!process.env.RESET_DEMO) return;
+  const CEO = 'ugartealan776@gmail.com';
+  const dataTables = ['creatives', 'projects', 'ai_generations', 'credit_transactions', 'credit_purchases', 'leads', 'campaigns', 'user_integrations', 'brand_products', 'brand_profiles', 'subscriptions'];
+  let removed = 0;
+  for (const t of dataTables) {
+    try { const r = await pool.query(`DELETE FROM ${t}`); removed += r.rowCount ?? 0; } catch { /* la tabla puede no existir */ }
+  }
+  try {
+    const r = await pool.query('DELETE FROM users WHERE lower(email) <> $1', [CEO]);
+    console.log(`🧹 RESET_DEMO: ${removed} filas de datos borradas + ${r.rowCount ?? 0} usuarios de prueba eliminados (CEO conservado).`);
+  } catch (e: any) {
+    console.log(`🧹 RESET_DEMO: ${removed} filas de datos borradas; usuarios no se pudieron limpiar (${e.message}).`);
+  }
+}
+
 export async function autoMigrate(): Promise<void> {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
@@ -139,6 +157,7 @@ export async function autoMigrate(): Promise<void> {
         WHERE email = 'admin@aicommerceads.com'
       `);
       await ensureNewTables(pool);
+      await cleanDemoData(pool);
       console.log('✅ Admin password hash verified');
       return;
     }
